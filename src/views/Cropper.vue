@@ -30,7 +30,7 @@ const detailInfo = ref<any>({
   rotate: null,
 });
 // 截图插件配置
-const cropperOption = ref<Cropper.Options>({
+const cropperOption = ref<Cropper.Options | any>({
   viewMode: 1, // 只能在裁剪的图片范围内移动
   cropBoxMovable: true, // 禁止裁剪区移动
   cropBoxResizable: true, // 禁止裁剪区缩放
@@ -39,6 +39,7 @@ const cropperOption = ref<Cropper.Options>({
   guides: false, // 是否显示剪裁框虚线
   autoCrop: false,
   cropend() {
+    console.log(selectIndex.value)
     const cropData = { ...cropper.value?.getCropBoxData(), is_hidden: true };
     picPosition.value[selectIndex.value] = cropData;
   },
@@ -131,11 +132,10 @@ const unlock = () => {
 };
 const changeRadio = () => {
   if (!cropper.value) return;
-  picPosition.value[selectIndex.value] = cropper.value?.getCropBoxData();
   selectIndex.value = radioValue.value;
   setStaticBoxShow();
-  picPosition.value[selectIndex.value].is_hidden = true;
-  const cropBoxData = picPosition.value[selectIndex.value];
+  picPosition.value[radioValue.value].is_hidden = true;
+  const cropBoxData = picPosition.value[radioValue.value];
   cropper.value.setCropBoxData(cropBoxData);
 };
 const setStaticBoxShow = () => {
@@ -148,7 +148,7 @@ onMounted(() => init());
 </script>
 
 <template>
-  {{ picPosition }}
+  {{ radioValue }}
   <div class="actions" style="text-align: center; margin-bottom: 32px">
     <a-button type="primary" style="margin-right: 16px" @click.prevent="toBlock">
       Block
@@ -202,7 +202,7 @@ onMounted(() => init());
           ></div>
         </template>
       </div>
-      <div class="actions">
+      <div class="actions" style="height: 800px;overflow-y:scroll">
         <a href="#" role="button" @click.prevent="zoom(0.2)"> Zoom In </a>
         <a href="#" role="button" @click.prevent="zoom(-0.2)"> Zoom Out </a>
         <a href="#" role="button" @click.prevent="setData"> Set Data </a>
