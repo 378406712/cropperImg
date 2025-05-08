@@ -1,0 +1,25 @@
+{
+  "name": "vue3-demo",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@types/vue-cropperjs": "^4.1.6",
+    "ant-design-vue": "4.x",
+    "cropperjs": "1.6.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1",
+    "pinia": "^2.0.32",
+    "sqip": "^0.3.3",
+    "vue": "^3.2.47",
+    "vue-router": "^4.1.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.0.0",
+    "vite": "^4.1.4"
+  }
+}
