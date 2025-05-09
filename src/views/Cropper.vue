@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, nextTick, onMounted } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import Cropper from "cropperjs";
 // 样式
 import "cropperjs/dist/cropper.css";
@@ -37,14 +37,22 @@ const cropperOption = ref<Cropper.Options>({
   autoCrop: false,
   cropend() {
     const cropData = { ...cropper.value?.getCropBoxData(), is_hidden: true };
-    picPosition.value[radioValue.value] = cropData;
+    picPosition.value[radioValue.value] = {
+      left: cropData.left || 0,
+      top: cropData.top || 0,
+      width: cropData.width || 0,
+      height: cropData.height || 0,
+      is_hidden: true,
+    };
   },
   ready() {
     cropper.value && cropper.value.disable();
   },
 });
-
-const picPosition = ref<Cropper.CropBoxData[]>([]);
+interface CropBoxData extends Cropper.CropBoxData {
+  is_hidden: boolean;
+}
+const picPosition = ref<CropBoxData[]>([]);
 
 const setCropBoxData = () => {
   if (!picPosition.value) return;
