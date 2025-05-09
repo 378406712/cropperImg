@@ -100,7 +100,26 @@ const add = () => {
   radioValue.value = picPosition.value.length - 1;
 };
 const deleteCrop = async () => {
-
+const index = radioValue.value;
+const flag = index === picPosition.value.length - 1; // 是否是最后一个
+picPosition.value.splice(index, 1);
+setStaticBoxShow()
+if(flag) {
+  console.log('tre')
+  if(radioValue.value > 0) {
+    radioValue.value = picPosition.value.length - 1;
+  picPosition.value[picPosition.value.length - 1].is_hidden = true
+  cropper.value?.setCropBoxData(picPosition.value[picPosition.value.length - 1]);
+  } else {
+    cropper.value?.clear()
+  }
+  
+}
+// else {
+//   picPosition.value[index ].is_hidden = true
+//   cropper.value?.setCropBoxData(picPosition.value[index + 1]);
+//   radioValue.value = index;
+// }
 
 };
 const showDetail = (index) => {
@@ -117,8 +136,6 @@ const handleOk = () => {
   setStaticBoxShow();
   picPosition.value[radioValue.value] = {...detailInfo.value.data,is_hidden:true}
   cropper.value && cropper.value.setCropBoxData(detailInfo.value.data);
-
-
 };
 const toBlock = () => {
   if (!cropper.value) return;
