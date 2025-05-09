@@ -14,23 +14,20 @@ const radioStyle = reactive({
   height: "30px",
   lineHeight: "30px",
 });
-const radioValue = ref();
-const detailInfo = ref<any>({
+const radioValue = ref(0);
+const detailInfo = ref({
   visible: false,
   data: {
-    x: null,
-    y: null,
-    width: null,
-    height: null,
-    rotate: null,
-    scaleX: null,
-    scaleY: null,
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    rotate: 0,
   },
-  loading: false,
-  rotate: null,
+  loading: false
 });
 // 截图插件配置
-const cropperOption = ref<Cropper.Options | any>({
+const cropperOption = ref<Cropper.Options>({
   viewMode: 1, // 只能在裁剪的图片范围内移动
   cropBoxMovable: true, // 禁止裁剪区移动
   cropBoxResizable: true, // 禁止裁剪区缩放
@@ -39,29 +36,15 @@ const cropperOption = ref<Cropper.Options | any>({
   guides: false, // 是否显示剪裁框虚线
   autoCrop: false,
   cropend() {
-    console.log(selectIndex.value)
     const cropData = { ...cropper.value?.getCropBoxData(), is_hidden: true };
-    picPosition.value[selectIndex.value] = cropData;
+    picPosition.value[radioValue.value] = cropData;
   },
-  // ready() {
-  //   // cropper.value?.crop();
-
-  // },
+  ready() {
+    cropper.value && cropper.value.disable();
+  },
 });
 
-interface CropperData {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotate: number;
-  scaleX: number;
-  scaleY: number;
-  left?: number;
-  top?: number;
-}
-const picPosition = ref<CropperData[] | any>([]);
-const selectIndex = ref(0);
+const picPosition = ref<Cropper.CropBoxData[]>([]);
 
 const setCropBoxData = () => {
   if (!picPosition.value) return;
@@ -87,33 +70,24 @@ const add = () => {
     cropper.value?.setCropBoxData(defaultPosition.value);
     picPosition.value.push(defaultPosition.value);
   } else {
-    const lastData = picPosition.value[selectIndex.value];
+    const lastData = picPosition.value[radioValue.value];
     setStaticBoxShow();
-    console.log(lastData);
-    selectIndex.value += 1;
     cropper.value?.setCropBoxData({
-      left: 0,
+      ...defaultPosition.value,
       top: lastData.top + lastData.height,
-      width: 1265,
-      height: 20,
-      is_hidden: true,
     });
     picPosition.value[picPosition.value.length] = {
-      left: 0,
+      ...defaultPosition.value,
       top: lastData.top + lastData.height,
-      width: 1265,
-      height: 20,
-      is_hidden: true,
     };
   }
   radioValue.value = picPosition.value.length - 1;
 };
 const deleteCrop = async () => {};
 const showDetail = (index) => {
-  selectIndex.value = index;
   radioValue.value = index;
   detailInfo.value.visible = true;
-  detailInfo.value.data = picPosition.value[index];
+  detailInfo.value.data = {...picPosition.value[index],rotate: 0};
 };
 const handleOk = () => {
   detailInfo.value.visible = false;
@@ -132,7 +106,6 @@ const unlock = () => {
 };
 const changeRadio = () => {
   if (!cropper.value) return;
-  selectIndex.value = radioValue.value;
   setStaticBoxShow();
   picPosition.value[radioValue.value].is_hidden = true;
   const cropBoxData = picPosition.value[radioValue.value];
@@ -202,7 +175,7 @@ onMounted(() => init());
           ></div>
         </template>
       </div>
-      <div class="actions" style="height: 800px;overflow-y:scroll">
+      <div class="actions" style="height: 800px; overflow-y: scroll">
         <a href="#" role="button" @click.prevent="zoom(0.2)"> Zoom In </a>
         <a href="#" role="button" @click.prevent="zoom(-0.2)"> Zoom Out </a>
         <a href="#" role="button" @click.prevent="setData"> Set Data </a>
