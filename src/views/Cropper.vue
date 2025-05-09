@@ -16,6 +16,7 @@ const radioStyle = reactive({
 });
 const radioValue = ref(0);
 const cropBoxData = ref()
+const realPicData = ref()
 const detailInfo = ref({
   visible: false,
   data: {
@@ -29,7 +30,7 @@ const detailInfo = ref({
 });
 // 截图插件配置
 const cropperOption = ref<Cropper.Options>({
-  viewMode: 1, // 只能在裁剪的图片范围内移动
+  viewMode: 3, // 只能在裁剪的图片范围内移动
   cropBoxMovable: true, // 禁止裁剪区移动
   cropBoxResizable: true, // 禁止裁剪区缩放
   background: false, // 关闭默认背景
@@ -98,15 +99,26 @@ const add = () => {
   }
   radioValue.value = picPosition.value.length - 1;
 };
-const deleteCrop = async () => {};
+const deleteCrop = async () => {
+
+
+};
 const showDetail = (index) => {
   radioValue.value = index;
-  detailInfo.value.visible = true;
-  detailInfo.value.data = {...picPosition.value[index],rotate: 0};
+  detailInfo.value = {visible:true,loading:false,data:{...picPosition.value[index],rotate: 0}};
+  setStaticBoxShow();
+  picPosition.value[radioValue.value].is_hidden = true;
+  const cropBoxData = picPosition.value[radioValue.value];
+  cropper.value && cropper.value.setCropBoxData(cropBoxData);
+
 };
 const handleOk = () => {
   detailInfo.value.visible = false;
-  cropper.value?.setData(detailInfo.value.data);
+  setStaticBoxShow();
+  picPosition.value[radioValue.value] = {...detailInfo.value.data,is_hidden:true}
+  cropper.value && cropper.value.setCropBoxData(detailInfo.value.data);
+
+
 };
 const toBlock = () => {
   if (!cropper.value) return;
@@ -131,7 +143,10 @@ const setStaticBoxShow = () => {
     item.is_hidden = false;
   });
 };
-const setData = () => {};
+const getData = () => {
+  const data = cropper.value && cropper.value.getData();
+  realPicData.value = JSON.stringify(data)
+};
 onMounted(() => init());
 </script>
 
@@ -193,10 +208,15 @@ onMounted(() => init());
       <div class="actions" style="height: 800px; overflow-y: scroll">
         <a href="#" role="button" @click.prevent="zoom(0.2)"> Zoom In </a>
         <a href="#" role="button" @click.prevent="zoom(-0.2)"> Zoom Out </a>
-        <a href="#" role="button" @click.prevent="setData"> Set Data </a>
+        <a href="#" role="button" @click.prevent="getData"> Get Data </a>
         <a href="#" role="button" @click.prevent="setCropBoxData"> Set CropBox Data </a>
         <a href="#" role="button" @click.prevent="getCropBoxData"> Get CropBox Data </a>
-        <a-textarea v-model:value="cropBoxData"></a-textarea>
+        <div>
+        cropBoxData:
+          <a-textarea style="margin-bottom: 16px;" v-model:value="cropBoxData"></a-textarea>
+          RealPicData:
+          <a-textarea v-model:value="realPicData"></a-textarea>
+        </div>
         <div
           v-for="(item, index) in picPosition"
           :key="index"
@@ -252,6 +272,7 @@ onMounted(() => init());
 
 .left-area {
   width: 25%;
+  max-width: 600px;
 }
 
 .right-area {
@@ -261,13 +282,9 @@ onMounted(() => init());
 }
 
 .img-container {
-  width: 800px;
-  height: auto;
-  overflow: hidden;
   margin-right: 20px;
-  width: 75%;
   position: relative;
-
+  background-color: rgba(127, 118, 118, 0.342);
   img {
     width: 100%;
     height: auto;
