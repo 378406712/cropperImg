@@ -1,23 +1,50 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue";
-import Cropper from "cropperjs";
-// 样式
-import "cropperjs/dist/cropper.css";
-import { message } from "ant-design-vue";
+import { ref, reactive, onMounted, computed } from 'vue'
+import Cropper from 'cropperjs'
+import 'cropperjs/dist/cropper.css'
+import { message } from 'ant-design-vue'
 
-// 定义
-const cropper = ref<Cropper | null>(null);
-const uploadImg = ref<HTMLImageElement>();
-const isLock = ref(true);
+interface CropBoxData extends Cropper.CropBoxData {
+  is_hidden: boolean
+}
+const cropper = ref<Cropper | null>(null)
+const uploadImg = ref<HTMLImageElement>()
+const isLock = ref(true)
 const radioStyle = reactive({
-  display: "flex",
-  height: "30px",
-  lineHeight: "30px",
-});
-const radioValue = ref(0);
-const cropBoxData = ref();
-const realPicData = ref();
-const pageIndex = ref(1);
+  display: 'flex',
+  height: '30px',
+  lineHeight: '30px'
+})
+const pageData = ref([
+  {
+    page: 1,
+    data: [
+      { left: 100, top: 100, width: 100, height: 100 },
+      { left: 286.66668701171875, top: 153.76924643584528, width: 115.33331298828125, height: 106 },
+      { left: 484, top: 335, width: 156, height: 129.3333740234375 }
+    ]
+  },
+  {
+    page: 2,
+    data: [
+      { left: 0, top: 100, width: 100, height: 100 },
+      { left: 32, top: 200, width: 200, height: 200 },
+      { left: 300, top: 300, width: 300, height: 300 }
+    ]
+  },
+  {
+    page: 3,
+    data: [
+      { left: 50, top: 50, width: 100, height: 100 },
+      { left: 80, top: 80, width: 232, height: 129 },
+      { left: 120, top: 120, width: 129, height: 232 }
+    ]
+  }
+])
+const radioValue = ref(0)
+const cropBoxData = ref()
+const realPicData = ref()
+const pageIndex = ref(1)
 
 const detailInfo = ref({
   visible: false,
@@ -26,13 +53,13 @@ const detailInfo = ref({
     top: 0,
     width: 0,
     height: 0,
-    rotate: 0,
+    rotate: 0
   },
-  loading: false,
-});
+  loading: false
+})
 // 截图插件配置
 const cropperOption = ref<Cropper.Options>({
-  viewMode: 1, // 只能在裁剪的图片范围内移动
+  viewMode: 0, // 只能在裁剪的图片范围内移动
   cropBoxMovable: true, // 禁止裁剪区移动
   cropBoxResizable: true, // 禁止裁剪区缩放
   background: false, // 关闭默认背景
@@ -40,257 +67,216 @@ const cropperOption = ref<Cropper.Options>({
   guides: false, // 是否显示剪裁框虚线
   autoCrop: false,
   cropend() {
-    const cropData = { ...cropper.value?.getCropBoxData(), is_hidden: true };
+    const cropData = { ...cropper.value?.getCropBoxData(), is_hidden: true }
     picPosition.value[radioValue.value] = {
       left: cropData.left || 0,
       top: cropData.top || 0,
       width: cropData.width || 0,
       height: cropData.height || 0,
-      is_hidden: true,
-    };
+      is_hidden: true
+    }
   },
   ready() {
-    cropper.value && cropper.value.disable();
-  },
-});
-interface CropBoxData extends Cropper.CropBoxData {
-  is_hidden: boolean;
-}
-const picPosition = ref<CropBoxData[]>([]);
+    cropper.value && cropper.value.disable()
+    initDeFaultCropBoxData()
+  }
+})
+
+const picPosition = ref<CropBoxData[]>([])
 const getImagePath = computed(() => {
-  return new URL(`../assets/${pageIndex.value}.jpg`, import.meta.url).href;
-});
-const setCropBoxData = () => {
-  setStaticBoxShow();
-  const parseCropBoxData = JSON.parse(cropBoxData.value);
-  cropper.value?.setCropBoxData({ ...parseCropBoxData, is_hidden: true });
-  picPosition.value.push({ ...parseCropBoxData, is_hidden: true });
-  radioValue.value = picPosition.value.length - 1;
-};
+  return new URL(`../assets/${pageIndex.value}.jpg`, import.meta.url).href
+})
 const getCropBoxData = () => {
-  cropBoxData.value = JSON.stringify(cropper.value?.getCropBoxData());
-};
+  cropBoxData.value = JSON.stringify(cropper.value?.getCropBoxData())
+}
 const zoom = (percent) => {
-  cropper?.value?.zoom(percent);
-};
+  cropper?.value?.zoom(percent)
+}
 const init = () => {
-  const ele = uploadImg.value as HTMLImageElement;
-  cropper.value = new Cropper(ele, cropperOption.value);
-};
+  const ele = uploadImg.value as HTMLImageElement
+  cropper.value = new Cropper(ele, cropperOption.value)
+}
 const defaultPosition = ref({
   left: 0,
   top: 0,
   width: 1265,
   height: 20,
-  is_hidden: true,
-});
+  is_hidden: true
+})
 const add = () => {
   if (!picPosition.value.length) {
-    cropper.value?.crop();
-    cropper.value?.setCropBoxData(defaultPosition.value);
-    picPosition.value.push(defaultPosition.value);
+    cropper.value?.crop()
+    cropper.value?.setCropBoxData(defaultPosition.value)
+    picPosition.value.push(defaultPosition.value)
   } else {
-    const lastData = picPosition.value[radioValue.value];
-    setStaticBoxShow();
+    const lastData = picPosition.value[radioValue.value]
+    setStaticBoxShow()
     cropper.value?.setCropBoxData({
       ...defaultPosition.value,
-      top: lastData.top + lastData.height,
-    });
+      top: lastData.top + lastData.height
+    })
     picPosition.value[picPosition.value.length] = {
       ...defaultPosition.value,
-      top: lastData.top + lastData.height,
-    };
+      top: lastData.top + lastData.height
+    }
   }
-  radioValue.value = picPosition.value.length - 1;
-};
+  radioValue.value = picPosition.value.length - 1
+}
 const deleteCrop = async () => {
-  const index = radioValue.value;
-  const flag = index === picPosition.value.length - 1; // 是否是最后一个
-  picPosition.value.splice(index, 1);
-  setStaticBoxShow();
+  const index = radioValue.value
+  const flag = index === picPosition.value.length - 1 // 是否是最后一个
+  picPosition.value.splice(index, 1)
+  setStaticBoxShow()
   if (flag) {
     if (radioValue.value > 0) {
-      radioValue.value = picPosition.value.length - 1;
-      picPosition.value[picPosition.value.length - 1].is_hidden = true;
-      cropper.value?.setCropBoxData(picPosition.value[picPosition.value.length - 1]);
+      radioValue.value = picPosition.value.length - 1
+      picPosition.value[picPosition.value.length - 1].is_hidden = true
+      cropper.value?.setCropBoxData(picPosition.value[picPosition.value.length - 1])
     } else {
-      cropper.value?.clear();
+      cropper.value?.clear()
     }
   } else {
-    picPosition.value[radioValue.value].is_hidden = true;
-    cropper.value?.setCropBoxData(picPosition.value[radioValue.value]);
+    picPosition.value[radioValue.value].is_hidden = true
+    cropper.value?.setCropBoxData(picPosition.value[radioValue.value])
   }
-};
+}
 const showDetail = (index) => {
-  radioValue.value = index;
+  radioValue.value = index
   detailInfo.value = {
     visible: true,
     loading: false,
-    data: { ...picPosition.value[index], rotate: 0 },
-  };
-  setStaticBoxShow();
-  picPosition.value[radioValue.value].is_hidden = true;
-  const cropBoxData = picPosition.value[radioValue.value];
-  cropper.value && cropper.value.setCropBoxData(cropBoxData);
-};
-const handleOk = () => {
-  detailInfo.value.visible = false;
-  setStaticBoxShow();
-  picPosition.value[radioValue.value] = { ...detailInfo.value.data, is_hidden: true };
-  cropper.value && cropper.value.setCropBoxData(detailInfo.value.data);
-};
-const toBlock = () => {
-  if (!cropper.value) return;
-  message.warn("已锁定");
-  isLock.value = true;
-  setStaticBoxShow();
-
-  cropper.value.clear();
-  cropper.value.disable();
-};
-const unlock = () => {
-  isLock.value = false;
-  if (!cropper.value) return;
-  cropper.value.enable();
-  if(picPosition.value.length) {
-    setStaticBoxShow()
-    cropper.value.crop();
-    picPosition.value[radioValue.value].is_hidden = true;
-    cropper.value.setCropBoxData(picPosition.value[radioValue.value]);
-    
-  } else {
-    cropper.value.clear();
+    data: { ...picPosition.value[index], rotate: 0 }
   }
-};
+  setStaticBoxShow()
+  picPosition.value[radioValue.value].is_hidden = true
+  const cropBoxData = picPosition.value[radioValue.value]
+  cropper.value && cropper.value.setCropBoxData(cropBoxData)
+}
+const handleOk = () => {
+  detailInfo.value.visible = false
+  setStaticBoxShow()
+  picPosition.value[radioValue.value] = { ...detailInfo.value.data, is_hidden: true }
+  cropper.value && cropper.value.setCropBoxData(detailInfo.value.data)
+}
+const toBlock = () => {
+  if (!cropper.value) return
+  message.warn('已锁定')
+  isLock.value = true
+  setStaticBoxShow()
+  picPosition.value[radioValue.value].is_hidden = true
+  cropper.value.clear()
+  cropper.value.disable()
+}
+const unlock = () => {
+  isLock.value = false
+  if (!cropper.value) return
+  cropper.value.enable()
+  if (picPosition.value.length) {
+    setStaticBoxShow()
+    cropper.value.crop()
+    picPosition.value[radioValue.value].is_hidden = true
+    cropper.value.setCropBoxData(picPosition.value[radioValue.value])
+  } else {
+    cropper.value.clear()
+  }
+}
 const changeRadio = () => {
-  if (!cropper.value) return;
-  setStaticBoxShow();
-  picPosition.value[radioValue.value].is_hidden = true;
-  const cropBoxData = picPosition.value[radioValue.value];
-  cropper.value.setCropBoxData(cropBoxData);
-};
+  if (!cropper.value) return
+  setStaticBoxShow()
+  picPosition.value[radioValue.value].is_hidden = true
+  const cropBoxData = picPosition.value[radioValue.value]
+  cropper.value.setCropBoxData(cropBoxData)
+}
 const setStaticBoxShow = () => {
   picPosition.value.map((item) => {
-    item.is_hidden = false;
-  });
-};
+    item.is_hidden = false
+  })
+}
 const getData = () => {
-  const data = cropper.value && cropper.value.getData();
-  realPicData.value = JSON.stringify(data);
-};
+  const data = cropper.value && cropper.value.getData()
+  realPicData.value = JSON.stringify(data)
+}
 const previous = () => {
-  if (pageIndex.value > 1) {
-    pageIndex.value -= 1;
-    cropper.value?.replace(getImagePath.value,true);
-    reset()
+  if (pageIndex.value > 0) {
+    pageIndex.value -= 1
+    cropper.value?.replace(getImagePath.value, true)
+    initDeFaultCropBoxData()
+    cropper.value && cropper?.value.setCropBoxData(picPosition.value[radioValue.value])
   }
-};
+}
 const next = () => {
   if (pageIndex.value >= 0) {
-    pageIndex.value += 1;
-    cropper.value?.replace(getImagePath.value,true);
-    reset()
+    pageIndex.value += 1
+    cropper.value?.replace(getImagePath.value, true)
+    initDeFaultCropBoxData()
+    cropper.value && cropper?.value.setCropBoxData(picPosition.value[radioValue.value])
   }
-};
-const reset = () => {
-  cropper.value?.clear();
-  picPosition.value = []
-  radioValue.value = 0;
 }
-onMounted(() => init());
+const reset = () => {
+  cropper.value?.clear()
+  picPosition.value = []
+  radioValue.value = 0
+}
+const initDeFaultCropBoxData = () => {
+  const defaultCropBoxData = pageData.value.find((item) => item.page === pageIndex.value)?.data
+  if (defaultCropBoxData) {
+    picPosition.value = defaultCropBoxData.map((item) => ({ ...item, is_hidden: false }))
+    picPosition.value[radioValue.value].is_hidden = true
+    cropper.value?.setCropBoxData(picPosition.value[0])
+  }
+}
+onMounted(() => init())
 </script>
 
 <template>
   {{ radioValue }}
   <div class="actions" style="text-align: center; margin-bottom: 32px">
-    <a-button type="primary" style="margin-right: 16px" @click.prevent="toBlock">
-      Block
-    </a-button>
-    <a-button type="primary" @click.prevent="unlock"> Edit </a-button>
+    <a-button type="primary" style="margin-right: 16px" @click.prevent="toBlock">Block</a-button>
+    <a-button type="primary" @click.prevent="unlock">Edit</a-button>
   </div>
   <div class="flex">
     <div class="actions left-area">
       <a-radio-group v-model:value="radioValue" @change="changeRadio" :disabled="isLock">
-        <div
-          v-for="(item, index) in picPosition"
-          :key="index"
-          style="margin-bottom: 16px"
-        >
+        <div v-for="(item, index) in picPosition" :key="index" style="margin-bottom: 16px">
           <a-radio :style="radioStyle" :value="index">
             切图{{ index + 1 }} y: {{ item.left }}
-            <a-button style="margin-left: 16px" @click="showDetail(index)"
-              >Detail</a-button
-            >
+            <a-button style="margin-left: 16px" @click="showDetail(index)">Detail</a-button>
           </a-radio>
         </div>
       </a-radio-group>
       <div v-if="!isLock">
-        <a-button style="margin-right: 16px" type="primary" @click.prevent="add">
-          Add
-        </a-button>
-        <a-button type="primary" v-if="picPosition.length" @click.prevent="deleteCrop">
-          Delete
-        </a-button>
+        <a-button style="margin-right: 16px" type="primary" @click.prevent="add">Add</a-button>
+        <a-button type="primary" v-if="picPosition.length" @click.prevent="deleteCrop">Delete</a-button>
       </div>
     </div>
     <div class="right-area">
       <div class="img-container">
-        <img
-          ref="uploadImg"
-          id="uploadImg"
-          :src="getImagePath"
-          alt="Picture"
-          style="width: 100%; height: 100%"
-        />
+        <img ref="uploadImg" id="uploadImg" :src="getImagePath" alt="Picture" style="width: 100%; height: 100%" />
         <template v-for="(item, index) in picPosition" :key="index">
-          <div
-            v-if="!item.is_hidden"
-            class="static-box"
-            :style="{
-              width: `${item.width}px`,
-              height: `${item.height}px`,
-              left: `${item.left}px`,
-              top: `${item.top}px`,
-            }"
-          ></div>
+          <div v-if="!item.is_hidden" class="static-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
+
+          <div v-if="item.is_hidden && isLock" class="static-box preview-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
         </template>
       </div>
       <div class="actions" style="height: 800px; overflow-y: scroll">
-        <a href="#" role="button" @click.prevent="zoom(0.2)"> Zoom In </a>
-        <a href="#" role="button" @click.prevent="zoom(-0.2)"> Zoom Out </a>
-        <a href="#" role="button" @click.prevent="getData"> Get Data </a>
-        <a href="#" role="button" @click.prevent="setCropBoxData"> Set CropBox Data </a>
-        <a href="#" role="button" @click.prevent="getCropBoxData"> Get CropBox Data </a>
-        <a-button
-          :disabled="isLock"
-          type="primary"
-          style="margin-right: 16px"
-          @click.prevent="previous"
-        >
-          Previous Page
-        </a-button>
-        <a-button :disabled="isLock" role="button" @click.prevent="next">
-          Next Page</a-button
-        >
+        <a-button :disabled="isLock" @click.prevent="zoom(0.2)">Zoom In</a-button>
+        <a-button :disabled="isLock" @click.prevent="zoom(-0.2)">Zoom Out</a-button>
+        <a-button :disabled="isLock" @click.prevent="getData">Get Data</a-button>
+        <a-button :disabled="isLock" type="primary" @click.prevent="getCropBoxData">Get CropBox Data</a-button>
+        <a-button :disabled="!isLock" type="primary" style="margin-right: 16px" @click.prevent="previous">Previous Page</a-button>
+        <a-button :disabled="!isLock" role="button" @click.prevent="next">Next Page</a-button>
         <div>
           cropBoxData:
-          <a-textarea
-            style="margin-bottom: 16px"
-            v-model:value="cropBoxData"
-          ></a-textarea>
+          <a-textarea style="margin-bottom: 16px" v-model:value="cropBoxData"></a-textarea>
           RealPicData:
           <a-textarea v-model:value="realPicData"></a-textarea>
         </div>
-        <div
-          v-for="(item, index) in picPosition"
-          :key="index"
-          style="margin-bottom: 16px"
-        >
+        <div v-for="(item, index) in picPosition" :key="index" style="margin-bottom: 16px">
           <div>left: {{ item.left }}</div>
           <div>top: {{ item.top }}</div>
           <div>width: {{ item.width }}</div>
           <div>height: {{ item.height }}</div>
-          <div>is_hidden: {{ item.is_hidden ? "隱藏" : "显示" }}</div>
+          <div>is_hidden: {{ item.is_hidden ? '隱藏' : '显示' }}</div>
           <hr />
         </div>
       </div>
@@ -301,8 +287,9 @@ onMounted(() => init());
       <a-row>
         <a-col :span="12">
           <a-form-item label="x">
-            <a-input-number v-model:value="detailInfo.data.left" /> </a-form-item
-        ></a-col>
+            <a-input-number v-model:value="detailInfo.data.left" />
+          </a-form-item>
+        </a-col>
         <a-col :span="12">
           <a-form-item label="y">
             <a-input-number v-model:value="detailInfo.data.top" />
@@ -349,6 +336,7 @@ onMounted(() => init());
   margin-right: 20px;
   position: relative;
   background-color: rgba(127, 118, 118, 0.342);
+
   img {
     width: 100%;
     height: auto;
@@ -356,7 +344,7 @@ onMounted(() => init());
   }
 }
 
-input[type="file"] {
+input[type='file'] {
   display: none;
 }
 
@@ -389,13 +377,10 @@ input[type="file"] {
   margin-top: 1rem;
 }
 
-.actions a {
+.actions button {
   display: inline-block;
   padding: 5px 15px;
-  background: #0062cc;
-  color: white;
   text-decoration: none;
-  border-radius: 3px;
   margin-right: 1rem;
   margin-bottom: 1rem;
 }
@@ -446,7 +431,10 @@ textarea {
   background: rgba(255, 0, 0, 0.2);
   z-index: 0;
 }
-
+.preview-box {
+  border-color: blue;
+  background: rgba(3, 21, 158, 0.2);
+}
 :deep(.cropper-crop-box) {
   z-index: 1;
   opacity: 0.7;
