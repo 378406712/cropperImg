@@ -15,6 +15,7 @@ const radioStyle = reactive({
   lineHeight: "30px",
 });
 const radioValue = ref(0);
+const cropBoxData = ref()
 const detailInfo = ref({
   visible: false,
   data: {
@@ -55,9 +56,15 @@ interface CropBoxData extends Cropper.CropBoxData {
 const picPosition = ref<CropBoxData[]>([]);
 
 const setCropBoxData = () => {
-  if (!picPosition.value) return;
-  cropper.value?.setCropBoxData(picPosition.value[0]);
+  setStaticBoxShow();
+  const parseCropBoxData = JSON.parse(cropBoxData.value);
+  cropper.value?.setCropBoxData({...parseCropBoxData, is_hidden: true});
+  picPosition.value.push({...parseCropBoxData, is_hidden: true})
+  radioValue.value = picPosition.value.length - 1
 };
+const getCropBoxData = () => {
+   cropBoxData.value =  JSON.stringify(cropper.value?.getCropBoxData());
+}
 const zoom = (percent) => {
   cropper?.value?.zoom(percent);
 };
@@ -188,7 +195,8 @@ onMounted(() => init());
         <a href="#" role="button" @click.prevent="zoom(-0.2)"> Zoom Out </a>
         <a href="#" role="button" @click.prevent="setData"> Set Data </a>
         <a href="#" role="button" @click.prevent="setCropBoxData"> Set CropBox Data </a>
-        <a-textarea></a-textarea>
+        <a href="#" role="button" @click.prevent="getCropBoxData"> Get CropBox Data </a>
+        <a-textarea v-model:value="cropBoxData"></a-textarea>
         <div
           v-for="(item, index) in picPosition"
           :key="index"
