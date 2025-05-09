@@ -183,19 +183,22 @@ const getData = () => {
   realPicData.value = JSON.stringify(data)
 }
 const previous = () => {
-  if (pageIndex.value > 0) {
+  if (pageIndex.value > 1) {
     pageIndex.value -= 1
     cropper.value?.replace(getImagePath.value, true)
     initDeFaultCropBoxData()
     cropper.value && cropper?.value.setCropBoxData(picPosition.value[radioValue.value])
+    radioValue.value = 0
   }
 }
 const next = () => {
+  if (pageIndex.value > 2) return
   if (pageIndex.value >= 0) {
     pageIndex.value += 1
     cropper.value?.replace(getImagePath.value, true)
     initDeFaultCropBoxData()
     cropper.value && cropper?.value.setCropBoxData(picPosition.value[radioValue.value])
+    radioValue.value = 0
   }
 }
 const reset = () => {
@@ -248,6 +251,7 @@ onMounted(() => init())
         <a-button :disabled="isLock" @click.prevent="zoom(-0.2)">Zoom Out</a-button>
         <a-button :disabled="isLock" @click.prevent="getData">Get Data</a-button>
         <a-button :disabled="isLock" type="primary" @click.prevent="getCropBoxData">Get CropBox Data</a-button>
+        <a-button :disabled="isLock" type="primary" @click.prevent="getData">Get Data</a-button>
         <a-button :disabled="!isLock" type="primary" style="margin-right: 16px" @click.prevent="previous">Previous Page</a-button>
         <a-button :disabled="!isLock" role="button" @click.prevent="next">Next Page</a-button>
         <div>
@@ -297,6 +301,10 @@ onMounted(() => init())
         </a-col>
       </a-row>
     </a-form>
+    <template #footer>
+      <a-button @click="detailInfo.visible = false">Cancel</a-button>
+      <a-button v-if="!isLock" type="primary" @click="handleOk">OK</a-button>
+    </template>
   </a-modal>
 </template>
 
@@ -321,15 +329,14 @@ onMounted(() => init())
   margin-right: 20px;
   position: relative;
   background-color: rgba(127, 118, 118, 0.342);
-
 }
 
-:deep(.cropper-canvas){
-  width: auto!important;
-  transform: none!important;
+:deep(.cropper-canvas) {
+  width: auto !important;
+  transform: none !important;
   img {
-    width: 100%!important;
-    transform: none!important;
+    width: 100% !important;
+    transform: none !important;
   }
 }
 
