@@ -15,8 +15,8 @@ const radioStyle = reactive({
   lineHeight: "30px",
 });
 const radioValue = ref(0);
-const cropBoxData = ref()
-const realPicData = ref()
+const cropBoxData = ref();
+const realPicData = ref();
 const detailInfo = ref({
   visible: false,
   data: {
@@ -26,7 +26,7 @@ const detailInfo = ref({
     height: 0,
     rotate: 0,
   },
-  loading: false
+  loading: false,
 });
 // 截图插件配置
 const cropperOption = ref<Cropper.Options>({
@@ -59,13 +59,13 @@ const picPosition = ref<CropBoxData[]>([]);
 const setCropBoxData = () => {
   setStaticBoxShow();
   const parseCropBoxData = JSON.parse(cropBoxData.value);
-  cropper.value?.setCropBoxData({...parseCropBoxData, is_hidden: true});
-  picPosition.value.push({...parseCropBoxData, is_hidden: true})
-  radioValue.value = picPosition.value.length - 1
+  cropper.value?.setCropBoxData({ ...parseCropBoxData, is_hidden: true });
+  picPosition.value.push({ ...parseCropBoxData, is_hidden: true });
+  radioValue.value = picPosition.value.length - 1;
 };
 const getCropBoxData = () => {
-   cropBoxData.value =  JSON.stringify(cropper.value?.getCropBoxData());
-}
+  cropBoxData.value = JSON.stringify(cropper.value?.getCropBoxData());
+};
 const zoom = (percent) => {
   cropper?.value?.zoom(percent);
 };
@@ -100,41 +100,39 @@ const add = () => {
   radioValue.value = picPosition.value.length - 1;
 };
 const deleteCrop = async () => {
-const index = radioValue.value;
-const flag = index === picPosition.value.length - 1; // 是否是最后一个
-picPosition.value.splice(index, 1);
-setStaticBoxShow()
-if(flag) {
-  console.log('tre')
-  if(radioValue.value > 0) {
-    radioValue.value = picPosition.value.length - 1;
-  picPosition.value[picPosition.value.length - 1].is_hidden = true
-  cropper.value?.setCropBoxData(picPosition.value[picPosition.value.length - 1]);
+  const index = radioValue.value;
+  const flag = index === picPosition.value.length - 1; // 是否是最后一个
+  picPosition.value.splice(index, 1);
+  setStaticBoxShow();
+  if (flag) {
+    if (radioValue.value > 0) {
+      radioValue.value = picPosition.value.length - 1;
+      picPosition.value[picPosition.value.length - 1].is_hidden = true;
+      cropper.value?.setCropBoxData(picPosition.value[picPosition.value.length - 1]);
+    } else {
+      cropper.value?.clear();
+    }
   } else {
-    cropper.value?.clear()
+    picPosition.value[radioValue.value].is_hidden = true;
+    cropper.value?.setCropBoxData(picPosition.value[radioValue.value]);
   }
-  
-}
-// else {
-//   picPosition.value[index ].is_hidden = true
-//   cropper.value?.setCropBoxData(picPosition.value[index + 1]);
-//   radioValue.value = index;
-// }
-
 };
 const showDetail = (index) => {
   radioValue.value = index;
-  detailInfo.value = {visible:true,loading:false,data:{...picPosition.value[index],rotate: 0}};
+  detailInfo.value = {
+    visible: true,
+    loading: false,
+    data: { ...picPosition.value[index], rotate: 0 },
+  };
   setStaticBoxShow();
   picPosition.value[radioValue.value].is_hidden = true;
   const cropBoxData = picPosition.value[radioValue.value];
   cropper.value && cropper.value.setCropBoxData(cropBoxData);
-
 };
 const handleOk = () => {
   detailInfo.value.visible = false;
   setStaticBoxShow();
-  picPosition.value[radioValue.value] = {...detailInfo.value.data,is_hidden:true}
+  picPosition.value[radioValue.value] = { ...detailInfo.value.data, is_hidden: true };
   cropper.value && cropper.value.setCropBoxData(detailInfo.value.data);
 };
 const toBlock = () => {
@@ -162,7 +160,7 @@ const setStaticBoxShow = () => {
 };
 const getData = () => {
   const data = cropper.value && cropper.value.getData();
-  realPicData.value = JSON.stringify(data)
+  realPicData.value = JSON.stringify(data);
 };
 onMounted(() => init());
 </script>
@@ -229,8 +227,11 @@ onMounted(() => init());
         <a href="#" role="button" @click.prevent="setCropBoxData"> Set CropBox Data </a>
         <a href="#" role="button" @click.prevent="getCropBoxData"> Get CropBox Data </a>
         <div>
-        cropBoxData:
-          <a-textarea style="margin-bottom: 16px;" v-model:value="cropBoxData"></a-textarea>
+          cropBoxData:
+          <a-textarea
+            style="margin-bottom: 16px"
+            v-model:value="cropBoxData"
+          ></a-textarea>
           RealPicData:
           <a-textarea v-model:value="realPicData"></a-textarea>
         </div>
