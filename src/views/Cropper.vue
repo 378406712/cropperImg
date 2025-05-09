@@ -10,34 +10,30 @@ interface CropBoxData extends Cropper.CropBoxData {
 const cropper = ref<Cropper | null>(null)
 const uploadImg = ref<HTMLImageElement>()
 const isLock = ref(true)
-const radioStyle = reactive({
-  display: 'flex',
-  height: '30px',
-  lineHeight: '30px'
-})
+const radioStyle = reactive({ display: 'flex', height: '30px', lineHeight: '30px' })
 const pageData = ref([
   {
     page: 1,
     data: [
+      { left: 0, top: 0, width: 100, height: 100 },
       { left: 100, top: 100, width: 100, height: 100 },
-      { left: 286.66668701171875, top: 153.76924643584528, width: 115.33331298828125, height: 106 },
-      { left: 484, top: 335, width: 156, height: 129.3333740234375 }
+      { left: 200, top: 200, width: 100, height: 100 }
     ]
   },
   {
     page: 2,
     data: [
-      { left: 0, top: 100, width: 100, height: 100 },
-      { left: 32, top: 200, width: 200, height: 200 },
-      { left: 300, top: 300, width: 300, height: 300 }
+      { left: 100, top: 100, width: 100, height: 100 },
+      { left: 100, top: 200, width: 200, height: 100 },
+      { left: 100, top: 300, width: 300, height: 300 }
     ]
   },
   {
     page: 3,
     data: [
-      { left: 50, top: 50, width: 100, height: 100 },
-      { left: 80, top: 80, width: 232, height: 129 },
-      { left: 120, top: 120, width: 129, height: 232 }
+      { left: 500, top: 510, width: 100, height: 100 },
+      { left: 200, top: 15, width: 232, height: 129 },
+      { left: 32, top: 52, width: 123, height: 232 }
     ]
   }
 ])
@@ -48,18 +44,15 @@ const pageIndex = ref(1)
 
 const detailInfo = ref({
   visible: false,
-  data: {
-    left: 0,
-    top: 0,
-    width: 0,
-    height: 0,
-    rotate: 0
-  },
+  data: { left: 0, top: 0, width: 0, height: 0, rotate: 0 },
   loading: false
 })
+
+const picPosition = ref<CropBoxData[]>([])
 // 截图插件配置
 const cropperOption = ref<Cropper.Options>({
-  viewMode: 0, // 只能在裁剪的图片范围内移动
+  viewMode: 3, // 只能在裁剪的图片范围内移动
+  responsive: true, // 启用响应式支持
   cropBoxMovable: true, // 禁止裁剪区移动
   cropBoxResizable: true, // 禁止裁剪区缩放
   background: false, // 关闭默认背景
@@ -68,13 +61,7 @@ const cropperOption = ref<Cropper.Options>({
   autoCrop: false,
   cropend() {
     const cropData = { ...cropper.value?.getCropBoxData(), is_hidden: true }
-    picPosition.value[radioValue.value] = {
-      left: cropData.left || 0,
-      top: cropData.top || 0,
-      width: cropData.width || 0,
-      height: cropData.height || 0,
-      is_hidden: true
-    }
+    picPosition.value[radioValue.value] = { left: cropData.left || 0, top: cropData.top || 0, width: cropData.width || 0, height: cropData.height || 0, is_hidden: true }
   },
   ready() {
     cropper.value && cropper.value.disable()
@@ -82,7 +69,6 @@ const cropperOption = ref<Cropper.Options>({
   }
 })
 
-const picPosition = ref<CropBoxData[]>([])
 const getImagePath = computed(() => {
   return new URL(`../assets/${pageIndex.value}.jpg`, import.meta.url).href
 })
@@ -254,7 +240,6 @@ onMounted(() => init())
         <img ref="uploadImg" id="uploadImg" :src="getImagePath" alt="Picture" style="width: 100%; height: 100%" />
         <template v-for="(item, index) in picPosition" :key="index">
           <div v-if="!item.is_hidden" class="static-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
-
           <div v-if="item.is_hidden && isLock" class="static-box preview-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
         </template>
       </div>
@@ -337,15 +322,15 @@ onMounted(() => init())
   position: relative;
   background-color: rgba(127, 118, 118, 0.342);
 
-  img {
-    width: 100%;
-    height: auto;
-    object-fit: cover;
-  }
 }
 
-input[type='file'] {
-  display: none;
+:deep(.cropper-canvas){
+  width: auto!important;
+  transform: none!important;
+  img {
+    width: 100%!important;
+    transform: none!important;
+  }
 }
 
 .header {
