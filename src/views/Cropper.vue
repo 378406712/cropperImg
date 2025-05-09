@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import Cropper from "cropperjs";
 // 样式
 import "cropperjs/dist/cropper.css";
@@ -17,6 +17,8 @@ const radioStyle = reactive({
 const radioValue = ref(0);
 const cropBoxData = ref();
 const realPicData = ref();
+const pageIndex = ref(1);
+
 const detailInfo = ref({
   visible: false,
   data: {
@@ -30,7 +32,7 @@ const detailInfo = ref({
 });
 // 截图插件配置
 const cropperOption = ref<Cropper.Options>({
-  viewMode: 3, // 只能在裁剪的图片范围内移动
+  viewMode: 1, // 只能在裁剪的图片范围内移动
   cropBoxMovable: true, // 禁止裁剪区移动
   cropBoxResizable: true, // 禁止裁剪区缩放
   background: false, // 关闭默认背景
@@ -55,7 +57,9 @@ interface CropBoxData extends Cropper.CropBoxData {
   is_hidden: boolean;
 }
 const picPosition = ref<CropBoxData[]>([]);
-
+const getImagePath = computed(() => {
+  return new URL(`../assets/${pageIndex.value}.jpg`, import.meta.url).href;
+});
 const setCropBoxData = () => {
   setStaticBoxShow();
   const parseCropBoxData = JSON.parse(cropBoxData.value);
@@ -139,12 +143,24 @@ const toBlock = () => {
   if (!cropper.value) return;
   message.warn("已锁定");
   isLock.value = true;
+  setStaticBoxShow();
+
+  cropper.value.clear();
   cropper.value.disable();
 };
 const unlock = () => {
   isLock.value = false;
   if (!cropper.value) return;
   cropper.value.enable();
+  if(picPosition.value.length) {
+    setStaticBoxShow()
+    cropper.value.crop();
+    picPosition.value[radioValue.value].is_hidden = true;
+    cropper.value.setCropBoxData(picPosition.value[radioValue.value]);
+    
+  } else {
+    cropper.value.clear();
+  }
 };
 const changeRadio = () => {
   if (!cropper.value) return;
@@ -162,6 +178,25 @@ const getData = () => {
   const data = cropper.value && cropper.value.getData();
   realPicData.value = JSON.stringify(data);
 };
+const previous = () => {
+  if (pageIndex.value > 1) {
+    pageIndex.value -= 1;
+    cropper.value?.replace(getImagePath.value,true);
+    reset()
+  }
+};
+const next = () => {
+  if (pageIndex.value >= 0) {
+    pageIndex.value += 1;
+    cropper.value?.replace(getImagePath.value,true);
+    reset()
+  }
+};
+const reset = () => {
+  cropper.value?.clear();
+  picPosition.value = []
+  radioValue.value = 0;
+}
 onMounted(() => init());
 </script>
 
@@ -175,7 +210,7 @@ onMounted(() => init());
   </div>
   <div class="flex">
     <div class="actions left-area">
-      <a-radio-group v-model:value="radioValue" @change="changeRadio">
+      <a-radio-group v-model:value="radioValue" @change="changeRadio" :disabled="isLock">
         <div
           v-for="(item, index) in picPosition"
           :key="index"
@@ -203,7 +238,7 @@ onMounted(() => init());
         <img
           ref="uploadImg"
           id="uploadImg"
-          src="../assets/3.jpg"
+          :src="getImagePath"
           alt="Picture"
           style="width: 100%; height: 100%"
         />
@@ -226,6 +261,17 @@ onMounted(() => init());
         <a href="#" role="button" @click.prevent="getData"> Get Data </a>
         <a href="#" role="button" @click.prevent="setCropBoxData"> Set CropBox Data </a>
         <a href="#" role="button" @click.prevent="getCropBoxData"> Get CropBox Data </a>
+        <a-button
+          :disabled="isLock"
+          type="primary"
+          style="margin-right: 16px"
+          @click.prevent="previous"
+        >
+          Previous Page
+        </a-button>
+        <a-button :disabled="isLock" role="button" @click.prevent="next">
+          Next Page</a-button
+        >
         <div>
           cropBoxData:
           <a-textarea
