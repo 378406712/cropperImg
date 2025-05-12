@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import Cropper from 'cropperjs'
 import 'cropperjs/dist/cropper.css'
 import { message } from 'ant-design-vue'
@@ -66,9 +66,36 @@ const cropperOption = ref<Cropper.Options>({
   ready() {
     cropper.value && cropper.value.disable()
     initDeFaultCropBoxData()
+    initImg()
+  },
+  cropmove(event) {
+    initImg()
+    setTimeout(() => {
+      const cropperViewBoxImg = document.querySelector('.cropper-view-box img') as HTMLElement
+      cropperViewBoxImg.style.width = `${1135}px`
+    }, 0)
   }
 })
-
+watch(
+  () => isLock.value,
+  () => {
+    cropper.value && cropper?.value.moveTo(0, 0)
+    initImg()
+  }
+)
+const initImg = () => {
+  const cropperContainer = document.querySelector('.cropper-container') as HTMLElement
+  const cropperCanvas = document.querySelector('.cropper-canvas') as HTMLElement
+  const cropperCanvasImg = cropperCanvas.querySelector('img') as HTMLElement
+  const cropperViewBoxImg = document.querySelector('.cropper-view-box img') as HTMLElement
+  const { width, height } = cropperContainer?.getBoundingClientRect() || { width: 0, height: 0 }
+  cropperCanvas.style.width = `${width}px`
+  cropperCanvas.style.height = `${height}px`
+  cropperCanvas.style.transform = `none`
+  cropperCanvasImg.style.width = `${width}px`
+  cropperCanvasImg.style.height = `${height}px`
+  cropperCanvasImg.style.transform = `none`
+}
 const getImagePath = computed(() => {
   return new URL(`../assets/${pageIndex.value}.jpg`, import.meta.url).href
 })
@@ -179,7 +206,7 @@ const setStaticBoxShow = () => {
   })
 }
 const getData = () => {
-  const data = cropper.value && cropper.value.getData()
+  const data = cropper.value && cropper.value.getData(true)
   realPicData.value = JSON.stringify(data)
 }
 const previous = () => {
@@ -218,7 +245,6 @@ onMounted(() => init())
 </script>
 
 <template>
-  {{ radioValue }}
   <div class="actions" style="text-align: center; margin-bottom: 32px">
     <a-button type="primary" style="margin-right: 16px" @click.prevent="toBlock">Block</a-button>
     <a-button type="primary" @click.prevent="unlock">Edit</a-button>
@@ -251,9 +277,10 @@ onMounted(() => init())
         <a-button :disabled="isLock" @click.prevent="zoom(-0.2)">Zoom Out</a-button>
         <a-button :disabled="isLock" @click.prevent="getData">Get Data</a-button>
         <a-button :disabled="isLock" type="primary" @click.prevent="getCropBoxData">Get CropBox Data</a-button>
-        <a-button :disabled="isLock" type="primary" @click.prevent="getData">Get Data</a-button>
-        <a-button :disabled="!isLock" type="primary" style="margin-right: 16px" @click.prevent="previous">Previous Page</a-button>
-        <a-button :disabled="!isLock" role="button" @click.prevent="next">Next Page</a-button>
+        <div>
+          <a-button :disabled="!isLock" type="primary" style="margin-right: 16px" @click.prevent="previous">Previous Page</a-button>
+          <a-button :disabled="!isLock" role="button" @click.prevent="next">Next Page</a-button>
+        </div>
         <div>
           cropBoxData:
           <a-textarea style="margin-bottom: 16px" v-model:value="cropBoxData"></a-textarea>
@@ -261,6 +288,7 @@ onMounted(() => init())
           <a-textarea v-model:value="realPicData"></a-textarea>
         </div>
         <div v-for="(item, index) in picPosition" :key="index" style="margin-bottom: 16px">
+          CropBox:
           <div>left: {{ item.left }}</div>
           <div>top: {{ item.top }}</div>
           <div>width: {{ item.width }}</div>
@@ -330,7 +358,7 @@ onMounted(() => init())
   position: relative;
   background-color: rgba(127, 118, 118, 0.342);
 }
-
+/* 
 :deep(.cropper-canvas) {
   width: auto !important;
   transform: none !important;
@@ -338,7 +366,7 @@ onMounted(() => init())
     width: 100% !important;
     transform: none !important;
   }
-}
+} */
 
 .header {
   display: flex;
@@ -382,36 +410,6 @@ textarea {
   height: 100px;
 }
 
-.preview-area {
-  width: 307px;
-}
-
-.preview-area p {
-  font-size: 1.25rem;
-  margin: 0;
-  margin-bottom: 1rem;
-}
-
-.preview-area p:last-of-type {
-  margin-top: 1rem;
-}
-
-.preview {
-  width: 100%;
-  height: calc(372px * (9 / 16));
-  overflow: hidden;
-}
-
-.crop-placeholder {
-  width: 100%;
-  height: 200px;
-  background: #ccc;
-}
-
-.cropped-image img {
-  max-width: 100%;
-}
-
 .data-detail {
   display: flex;
 }
@@ -434,5 +432,8 @@ textarea {
 
 :deep(.cropper-face) {
   background-color: rgba(255, 255, 255, 0.2);
+}
+:deep(.cropper-modal) {
+  background-color: rgba(0, 0, 0, 0.6);
 }
 </style>
