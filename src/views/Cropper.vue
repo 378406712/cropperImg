@@ -184,24 +184,31 @@ const getData = () => {
   const data = cropper.value && cropper.value.getData(true)
   realPicData.value = JSON.stringify(data)
 }
-const previous = () => {
+const previous = async() => {
   if (pageIndex.value > 1) {
+    cropper.value && cropper.value.enable()
     pageIndex.value -= 1
     cropper.value?.replace(getImagePath.value, true)
     initDeFaultCropBoxData()
     cropper.value && cropper?.value.setCropBoxData(picPosition.value[radioValue.value])
     radioValue.value = 0
+    await nextTick()
+    setPageMode(pageMode.value)
+    cropper.value && cropper.value.disable()
   }
 }
-const next = () => {
+const next = async () => {
   if (pageIndex.value > 2) return
+  cropper.value && cropper.value.enable()
   if (pageIndex.value >= 0) {
     pageIndex.value += 1
     cropper.value?.replace(getImagePath.value, true)
     initDeFaultCropBoxData()
     cropper.value && cropper?.value.setCropBoxData(picPosition.value[radioValue.value])
-    radioValue.value = 0
   }
+  await nextTick()
+  setPageMode(pageMode.value)
+  cropper.value && cropper.value.disable()
 }
 const calculateImgSize = () => {
   const cropperCanvas = document?.querySelector('.cropper-canvas') as HTMLElement
