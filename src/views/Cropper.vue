@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
 import Cropper from 'cropperjs'
 import 'cropperjs/dist/cropper.css'
 import { message } from 'ant-design-vue'
@@ -10,6 +10,7 @@ interface CropBoxData extends Cropper.CropBoxData {
 const cropper = ref<Cropper | null>(null)
 const uploadImg = ref<HTMLImageElement>()
 const isLock = ref(true)
+const fitPage = ref(false)
 const radioStyle = reactive({ display: 'flex', height: '30px', lineHeight: '30px' })
 const pageData = ref([
   {
@@ -51,7 +52,7 @@ const detailInfo = ref({
 const picPosition = ref<CropBoxData[]>([])
 // 截图插件配置
 const cropperOption = ref<Cropper.Options>({
-  viewMode: 3, // 只能在裁剪的图片范围内移动
+  viewMode: 1, // 只能在裁剪的图片范围内移动
   responsive: true, // 启用响应式支持
   cropBoxMovable: true, // 禁止裁剪区移动
   cropBoxResizable: true, // 禁止裁剪区缩放
@@ -64,37 +65,26 @@ const cropperOption = ref<Cropper.Options>({
     picPosition.value[radioValue.value] = { left: cropData.left || 0, top: cropData.top || 0, width: cropData.width || 0, height: cropData.height || 0, is_hidden: true }
   },
   ready() {
-    cropper.value && cropper.value.disable()
     initDeFaultCropBoxData()
     initImg()
-  },
-  cropmove(event) {
-    initImg()
-    setTimeout(() => {
-      const cropperViewBoxImg = document.querySelector('.cropper-view-box img') as HTMLElement
-      cropperViewBoxImg.style.width = `${1135}px`
-    }, 0)
+    setTimeout(() => cropper.value && cropper.value.disable(), 0)
   }
 })
-watch(
-  () => isLock.value,
-  () => {
-    cropper.value && cropper?.value.moveTo(0, 0)
-    initImg()
+
+const initImg = async () => {
+  await nextTick()
+  const cropperContainer = document?.querySelector('.cropper-container') as HTMLElement
+  const cropperCanvas = document?.querySelector('.cropper-canvas') as HTMLElement
+  const cropperCanvasImg = cropperCanvas?.querySelector('img') as HTMLElement
+  const { width, height } = cropperCanvasImg?.getBoundingClientRect() || { width: 0, height: 0 }
+  if (cropperContainer) {
+    cropperContainer.style.width = `${width}px`
+    cropperContainer.style.height = `${height}px`
   }
-)
-const initImg = () => {
-  const cropperContainer = document.querySelector('.cropper-container') as HTMLElement
-  const cropperCanvas = document.querySelector('.cropper-canvas') as HTMLElement
-  const cropperCanvasImg = cropperCanvas.querySelector('img') as HTMLElement
-  const cropperViewBoxImg = document.querySelector('.cropper-view-box img') as HTMLElement
-  const { width, height } = cropperContainer?.getBoundingClientRect() || { width: 0, height: 0 }
-  cropperCanvas.style.width = `${width}px`
-  cropperCanvas.style.height = `${height}px`
-  cropperCanvas.style.transform = `none`
-  cropperCanvasImg.style.width = `${width}px`
-  cropperCanvasImg.style.height = `${height}px`
-  cropperCanvasImg.style.transform = `none`
+  if (cropperCanvas) {
+    cropperCanvas.style.transform = `none`
+  }
+  cropper.value?.moveTo(0, 0)
 }
 const getImagePath = computed(() => {
   return new URL(`../assets/${pageIndex.value}.jpg`, import.meta.url).href
@@ -180,7 +170,7 @@ const toBlock = () => {
   cropper.value.clear()
   cropper.value.disable()
 }
-const unlock = () => {
+const unlock = async () => {
   isLock.value = false
   if (!cropper.value) return
   cropper.value.enable()
@@ -233,14 +223,39 @@ const reset = () => {
   picPosition.value = []
   radioValue.value = 0
 }
+const calculateImgSize = () => {
+  const cropperContainer = document?.querySelector('.cropper-container') as HTMLElement
+  const cropperCanvas = document?.querySelector('.cropper-canvas') as HTMLElement
+  const cropperCanvasImg = cropperCanvas?.querySelector('img') as HTMLElement
+  const oriImg = document?.querySelector('#uploadImg') as HTMLImageElement
+  const { width, height } = cropperCanvasImg?.getBoundingClientRect() || { width: 0, height: 0 }
+  const wRatio = width / oriImg.naturalWidth
+  const hRatio = height / oriImg.naturalHeight
+  return { wRatio, hRatio }
+}
 const initDeFaultCropBoxData = () => {
+  const { wRatio, hRatio } = calculateImgSize()
   const defaultCropBoxData = pageData.value.find((item) => item.page === pageIndex.value)?.data
   if (defaultCropBoxData) {
-    picPosition.value = defaultCropBoxData.map((item) => ({ ...item, is_hidden: false }))
+    picPosition.value = defaultCropBoxData.map((item) => ({ left: item.left * wRatio, top: item.top * hRatio, width: item.width * wRatio, height: item.height * hRatio, is_hidden: false }))
     picPosition.value[radioValue.value].is_hidden = true
-    cropper.value?.setCropBoxData(picPosition.value[0])
+    cropper.value?.setData(picPosition.value[0])
   }
 }
+const setFitPage = async (bool) => {
+  if (bool === fitPage.value) return
+  cropper.value?.destroy()
+  await nextTick()
+  init()
+  fitPage.value = bool
+  initImg()
+}
+watch(
+  () => isLock.value,
+  () => {
+    initImg()
+  }
+)
 onMounted(() => init())
 </script>
 
@@ -249,8 +264,8 @@ onMounted(() => init())
     <a-button type="primary" style="margin-right: 16px" @click.prevent="toBlock">Block</a-button>
     <a-button type="primary" @click.prevent="unlock">Edit</a-button>
   </div>
-  <div class="flex">
-    <div class="actions left-area">
+  <a-row type="flex">
+    <a-col :span="4" class="actions left-area">
       <a-radio-group v-model:value="radioValue" @change="changeRadio" :disabled="isLock">
         <div v-for="(item, index) in picPosition" :key="index" style="margin-bottom: 16px">
           <a-radio :style="radioStyle" :value="index">
@@ -263,42 +278,50 @@ onMounted(() => init())
         <a-button style="margin-right: 16px" type="primary" @click.prevent="add">Add</a-button>
         <a-button type="primary" v-if="picPosition.length" @click.prevent="deleteCrop">Delete</a-button>
       </div>
-    </div>
-    <div class="right-area">
-      <div class="img-container">
-        <img ref="uploadImg" id="uploadImg" :src="getImagePath" alt="Picture" style="width: 100%; height: 100%" />
-        <template v-for="(item, index) in picPosition" :key="index">
-          <div v-if="!item.is_hidden" class="static-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
-          <div v-if="item.is_hidden && isLock" class="static-box preview-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
-        </template>
-      </div>
-      <div class="actions" style="height: 800px; overflow-y: scroll">
-        <a-button :disabled="isLock" @click.prevent="zoom(0.2)">Zoom In</a-button>
-        <a-button :disabled="isLock" @click.prevent="zoom(-0.2)">Zoom Out</a-button>
-        <a-button :disabled="isLock" @click.prevent="getData">Get Data</a-button>
-        <a-button :disabled="isLock" type="primary" @click.prevent="getCropBoxData">Get CropBox Data</a-button>
-        <div>
-          <a-button :disabled="!isLock" type="primary" style="margin-right: 16px" @click.prevent="previous">Previous Page</a-button>
-          <a-button :disabled="!isLock" role="button" @click.prevent="next">Next Page</a-button>
-        </div>
-        <div>
-          cropBoxData:
-          <a-textarea style="margin-bottom: 16px" v-model:value="cropBoxData"></a-textarea>
-          RealPicData:
-          <a-textarea v-model:value="realPicData"></a-textarea>
-        </div>
-        <div v-for="(item, index) in picPosition" :key="index" style="margin-bottom: 16px">
-          CropBox:
-          <div>left: {{ item.left }}</div>
-          <div>top: {{ item.top }}</div>
-          <div>width: {{ item.width }}</div>
-          <div>height: {{ item.height }}</div>
-          <div>is_hidden: {{ item.is_hidden ? '隱藏' : '显示' }}</div>
-          <hr />
-        </div>
-      </div>
-    </div>
-  </div>
+    </a-col>
+    <a-col :span="20">
+      <a-row :gutter="16">
+        <a-col :span="18" class="img-container">
+          <div :class="fitPage ? 'fit-page' : null">
+            <img ref="uploadImg" id="uploadImg" :src="getImagePath" alt="Picture" style="width: 100%; height: 100%" />
+            <template v-for="(item, index) in picPosition" :key="index">
+              <div v-if="!item.is_hidden" class="static-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
+              <div v-if="item.is_hidden && isLock" class="static-box preview-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
+            </template>
+          </div>
+        </a-col>
+        <a-col :xl="6" class="actions" style="height: 800px; overflow-y: scroll">
+          <a-button :disabled="isLock" @click.prevent="zoom(0.2)">Zoom In</a-button>
+          <a-button :disabled="isLock" @click.prevent="zoom(-0.2)">Zoom Out</a-button>
+          <a-button :disabled="isLock" @click.prevent="getData">Get Data</a-button>
+          <a-button :disabled="isLock" type="primary" @click.prevent="getCropBoxData">Get CropBox Data</a-button>
+          <div>
+            <a-button :disabled="!isLock" type="primary" style="margin-right: 16px" @click.prevent="previous">Previous Page</a-button>
+            <a-button :disabled="!isLock" role="button" @click.prevent="next">Next Page</a-button>
+          </div>
+          <div>
+            <a-button :disabled="!isLock" @click="setFitPage(true)">Fit Page</a-button>
+            <a-button :disabled="!isLock" @click="setFitPage(false)">Full Page</a-button>
+          </div>
+          <div>
+            cropBoxData:
+            <a-textarea style="margin-bottom: 16px" v-model:value="cropBoxData"></a-textarea>
+            RealPicData:
+            <a-textarea v-model:value="realPicData"></a-textarea>
+          </div>
+          <div v-for="(item, index) in picPosition" :key="index" style="margin-bottom: 16px">
+            CropBox:
+            <div>left: {{ item.left }}</div>
+            <div>top: {{ item.top }}</div>
+            <div>width: {{ item.width }}</div>
+            <div>height: {{ item.height }}</div>
+            <div>is_hidden: {{ item.is_hidden ? '隱藏' : '显示' }}</div>
+            <hr />
+          </div>
+        </a-col>
+      </a-row>
+    </a-col>
+  </a-row>
   <a-modal v-model:open="detailInfo.visible" title="Detail" @ok="handleOk">
     <a-form :label-col="{ style: { width: '100px' } }">
       <a-row>
@@ -342,32 +365,17 @@ onMounted(() => init())
   width: 100%;
 }
 
-.left-area {
-  width: 25%;
-  max-width: 600px;
-}
-
-.right-area {
-  width: 75%;
-  display: flex;
-  position: relative;
-}
-
 .img-container {
-  margin-right: 20px;
   position: relative;
   background-color: rgba(127, 118, 118, 0.342);
+  padding: 8px;
+  height: 796px;
+  overflow: auto;
 }
-/* 
-:deep(.cropper-canvas) {
-  width: auto !important;
-  transform: none !important;
-  img {
-    width: 100% !important;
-    transform: none !important;
-  }
-} */
-
+.fit-page {
+  max-width: 1200px;
+  max-height: 800px;
+}
 .header {
   display: flex;
   justify-content: space-between;
@@ -435,5 +443,8 @@ textarea {
 }
 :deep(.cropper-modal) {
   background-color: rgba(0, 0, 0, 0.6);
+}
+:deep(.cropper-canvas) {
+  transform: none !important;
 }
 </style>
