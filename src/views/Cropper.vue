@@ -10,7 +10,7 @@ interface CropBoxData extends Cropper.CropBoxData {
 const cropper = ref<Cropper | null>(null)
 const uploadImg = ref<HTMLImageElement>()
 const isLock = ref(true)
-const fitPage = ref(false)
+const pageMode = ref<1 | 2 | 3>(1) // 1: 默认按当前容器 2: 适应容器高度缩放 3: 原图缩放
 const radioStyle = reactive({ display: 'flex', height: '30px', lineHeight: '30px' })
 const pageData = ref([
   {
@@ -71,21 +71,6 @@ const cropperOption = ref<Cropper.Options>({
   }
 })
 
-const initImg = async () => {
-  await nextTick()
-  const cropperContainer = document?.querySelector('.cropper-container') as HTMLElement
-  const cropperCanvas = document?.querySelector('.cropper-canvas') as HTMLElement
-  const cropperCanvasImg = cropperCanvas?.querySelector('img') as HTMLElement
-  const { width, height } = cropperCanvasImg?.getBoundingClientRect() || { width: 0, height: 0 }
-  if (cropperContainer) {
-    cropperContainer.style.width = `${width}px`
-    cropperContainer.style.height = `${height}px`
-  }
-  if (cropperCanvas) {
-    cropperCanvas.style.transform = `none`
-  }
-  cropper.value?.moveTo(0, 0)
-}
 const getImagePath = computed(() => {
   return new URL(`../assets/${pageIndex.value}.jpg`, import.meta.url).href
 })
@@ -218,13 +203,7 @@ const next = () => {
     radioValue.value = 0
   }
 }
-const reset = () => {
-  cropper.value?.clear()
-  picPosition.value = []
-  radioValue.value = 0
-}
 const calculateImgSize = () => {
-  const cropperContainer = document?.querySelector('.cropper-container') as HTMLElement
   const cropperCanvas = document?.querySelector('.cropper-canvas') as HTMLElement
   const cropperCanvasImg = cropperCanvas?.querySelector('img') as HTMLElement
   const oriImg = document?.querySelector('#uploadImg') as HTMLImageElement
@@ -242,21 +221,58 @@ const initDeFaultCropBoxData = () => {
     cropper.value?.setData(picPosition.value[0])
   }
 }
-const setFitPage = async (bool) => {
-  if (bool === fitPage.value) return
+const initImg = async () => {
+  await nextTick()
+  const cropperContainer = document?.querySelector('.cropper-container') as HTMLElement
+  const cropperCanvas = document?.querySelector('.cropper-canvas') as HTMLElement
+  const cropperCanvasImg = cropperCanvas?.querySelector('img') as HTMLImageElement
+  const { width, height } = cropperCanvasImg?.getBoundingClientRect() || { width: 0, height: 0 }
+  if (cropperContainer) {
+    cropperContainer.style.width = `${width}px`
+    cropperContainer.style.height = `${height}px`
+  }
+  if (cropperCanvas) {
+    cropperCanvas.style.transform = `none`
+  }
+
+  cropper.value?.moveTo(0, 0)
+}
+const setPageMode = async (mode) => {
+  pageMode.value = mode
+  const { naturalWidth, naturalHeight } = document.querySelector('#uploadImg') as HTMLImageElement
+  const dom = document.querySelector('.page-mode') as HTMLElement
+
+  await nextTick()
+  if (mode === 1) {
+    dom.style.width = `auto`
+    dom.style.height = `auto`
+  } else if (mode === 2) {
+    dom.style.width = `auto`
+    dom.style.height = `${796}px`
+  } else if (mode === 3) {
+    dom.style.width = `${naturalWidth}px`
+    dom.style.height = `${naturalHeight}px`
+  }
+  resizeImg()
+}
+const resizeImg = async () => {
   cropper.value?.destroy()
   await nextTick()
   init()
-  fitPage.value = bool
   initImg()
+  cropper.value?.crop()
 }
 watch(
   () => isLock.value,
-  () => {
-    initImg()
-  }
+  () => initImg()
 )
-onMounted(() => init())
+onMounted(() => {
+  init()
+  const pageObserver = new ResizeObserver(async () => {
+    resizeImg()
+  })
+  pageObserver.observe(document.querySelector('.img-container') as HTMLElement)
+})
 </script>
 
 <template>
@@ -265,7 +281,7 @@ onMounted(() => init())
     <a-button type="primary" @click.prevent="unlock">Edit</a-button>
   </div>
   <a-row type="flex">
-    <a-col :span="4" class="actions left-area">
+    <a-col :lg="4" :sm="24" class="actions left-area">
       <a-radio-group v-model:value="radioValue" @change="changeRadio" :disabled="isLock">
         <div v-for="(item, index) in picPosition" :key="index" style="margin-bottom: 16px">
           <a-radio :style="radioStyle" :value="index">
@@ -279,29 +295,35 @@ onMounted(() => init())
         <a-button type="primary" v-if="picPosition.length" @click.prevent="deleteCrop">Delete</a-button>
       </div>
     </a-col>
-    <a-col :span="20">
+    <a-col :lg="20" :sm="24">
       <a-row :gutter="16">
-        <a-col :span="18" class="img-container">
-          <div :class="fitPage ? 'fit-page' : null">
-            <img ref="uploadImg" id="uploadImg" :src="getImagePath" alt="Picture" style="width: 100%; height: 100%" />
-            <template v-for="(item, index) in picPosition" :key="index">
-              <div v-if="!item.is_hidden" class="static-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
-              <div v-if="item.is_hidden && isLock" class="static-box preview-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
-            </template>
+        <a-col :lg="18" :sm="24" class="img-container">
+          <div class="scroll-container">
+            <div class="page-mode">
+              <img ref="uploadImg" id="uploadImg" :src="getImagePath" alt="Picture" style="width: 100%; height: 100%" />
+              <template v-for="(item, index) in picPosition" :key="index">
+                <div v-if="!item.is_hidden" class="static-box" :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
+                <div
+                  v-if="item.is_hidden && isLock"
+                  class="static-box preview-box"
+                  :style="{ width: `${item.width}px`, height: `${item.height}px`, left: `${item.left}px`, top: `${item.top}px` }"></div>
+              </template>
+            </div>
           </div>
         </a-col>
-        <a-col :xl="6" class="actions" style="height: 800px; overflow-y: scroll">
+        <a-col :lg="6" :sm="24" class="actions" style="height: 800px; overflow-y: scroll">
           <a-button :disabled="isLock" @click.prevent="zoom(0.2)">Zoom In</a-button>
           <a-button :disabled="isLock" @click.prevent="zoom(-0.2)">Zoom Out</a-button>
           <a-button :disabled="isLock" @click.prevent="getData">Get Data</a-button>
           <a-button :disabled="isLock" type="primary" @click.prevent="getCropBoxData">Get CropBox Data</a-button>
           <div>
-            <a-button :disabled="!isLock" type="primary" style="margin-right: 16px" @click.prevent="previous">Previous Page</a-button>
+            <a-button :disabled="!isLock" style="margin-right: 16px" @click.prevent="previous">Previous Page</a-button>
             <a-button :disabled="!isLock" role="button" @click.prevent="next">Next Page</a-button>
           </div>
           <div>
-            <a-button :disabled="!isLock" @click="setFitPage(true)">Fit Page</a-button>
-            <a-button :disabled="!isLock" @click="setFitPage(false)">Full Page</a-button>
+            <a-button :type="pageMode === 1 ? 'primary' : null" :disabled="!isLock" @click="setPageMode(1)">Responsive Page</a-button>
+            <a-button :type="pageMode === 2 ? 'primary' : null" :disabled="!isLock" @click="setPageMode(2)">Fit Page</a-button>
+            <a-button :type="pageMode === 3 ? 'primary' : null" :disabled="!isLock" @click="setPageMode(3)">Original Page</a-button>
           </div>
           <div>
             cropBoxData:
@@ -369,12 +391,13 @@ onMounted(() => init())
   position: relative;
   background-color: rgba(127, 118, 118, 0.342);
   padding: 8px;
+}
+.scroll-container {
   height: 796px;
-  overflow: auto;
+  overflow-y: auto;
 }
 .fit-page {
-  max-width: 1200px;
-  max-height: 800px;
+  height: 796px !important;
 }
 .header {
   display: flex;
