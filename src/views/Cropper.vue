@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import Cropper from 'cropperjs'
 import 'cropperjs/dist/cropper.css'
 import { message } from 'ant-design-vue'
 import { useCropper } from './components/useCropper'
+import LeftPanel from './components/LeftPanel.vue'
 import RightPanel from './components/RightPanel.vue'
 
 interface CropBoxData extends Cropper.CropBoxData {
@@ -12,7 +13,6 @@ interface CropBoxData extends Cropper.CropBoxData {
 const uploadImg = ref<HTMLImageElement>()
 const isLock = ref(true)
 const pageMode = ref<1 | 2 | 3>(1) // 1: 默认按当前容器 2: 适应容器高度缩放 3: 原图缩放
-const radioStyle = reactive({ display: 'flex', height: '30px', lineHeight: '30px' })
 const pageData = ref([
   {
     page: 1,
@@ -79,7 +79,7 @@ const defaultPosition = ref({
   height: 20,
   is_hidden: true
 })
-const add = () => {
+const addCrop = () => {
   if (!picPosition.value.length) {
     cropper.value?.crop()
     cropper.value?.setCropBoxData(defaultPosition.value)
@@ -176,7 +176,6 @@ const setPageMode = async (mode) => {
   pageMode.value = mode
   const { naturalWidth, naturalHeight } = document.querySelector('#uploadImg') as HTMLImageElement
   const dom = document.querySelector('.page-mode') as HTMLElement
-
   await nextTick()
   if (mode === 1) {
     dom.style.width = `auto`
@@ -219,18 +218,7 @@ onMounted(() => {
   </div>
   <a-row type="flex">
     <a-col :lg="4" :sm="24" class="actions left-area">
-      <a-radio-group v-model:value="radioValue" @change="changeRadio" :disabled="isLock">
-        <div v-for="(item, index) in picPosition" :key="index" style="margin-bottom: 16px">
-          <a-radio :style="radioStyle" :value="index">
-            切图{{ index + 1 }} y: {{ item.left }}
-            <a-button style="margin-left: 16px" @click="showDetail(index)">Detail</a-button>
-          </a-radio>
-        </div>
-      </a-radio-group>
-      <div v-if="!isLock">
-        <a-button style="margin-right: 16px" type="primary" @click.prevent="add">Add</a-button>
-        <a-button type="primary" v-if="picPosition.length" @click.prevent="deleteCrop">Delete</a-button>
-      </div>
+      <LeftPanel :isLock="isLock" :picPosition="picPosition" :radioValue="radioValue" @changeRadio="changeRadio" @addCrop="addCrop" @deleteCrop="deleteCrop" @showDetail="showDetail" />
     </a-col>
     <a-col :lg="20" :sm="24">
       <a-row :gutter="16">
