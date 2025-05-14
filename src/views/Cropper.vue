@@ -41,10 +41,11 @@ const pageData = ref([
 ])
 const radioValue = ref(0)
 const cropBoxData = ref()
+// 原图位置(传递后端)
 const realPicData = ref()
 const pageIndex = ref(1)
-
 const detailInfo = ref({ visible: false, data: { left: 0, top: 0, width: 0, height: 0, rotate: 0 }, loading: false })
+// 当前图片位置
 const picPosition = ref<CropBoxData[]>([])
 // 截图插件配置
 const cropperOption = ref<Cropper.Options>({
