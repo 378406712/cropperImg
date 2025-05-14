@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
+import { ref, reactive, onMounted, watch, nextTick } from 'vue'
 import Cropper from 'cropperjs'
 import 'cropperjs/dist/cropper.css'
 import { message } from 'ant-design-vue'
+import { useCropper } from './components/useCropper'
+import RightPanel from './components/RightPanel.vue'
 
 interface CropBoxData extends Cropper.CropBoxData {
   is_hidden: boolean
 }
-const cropper = ref<Cropper | null>(null)
 const uploadImg = ref<HTMLImageElement>()
 const isLock = ref(true)
 const pageMode = ref<1 | 2 | 3>(1) // 1: 默认按当前容器 2: 适应容器高度缩放 3: 原图缩放
@@ -43,12 +44,7 @@ const cropBoxData = ref()
 const realPicData = ref()
 const pageIndex = ref(1)
 
-const detailInfo = ref({
-  visible: false,
-  data: { left: 0, top: 0, width: 0, height: 0, rotate: 0 },
-  loading: false
-})
-
+const detailInfo = ref({ visible: false, data: { left: 0, top: 0, width: 0, height: 0, rotate: 0 }, loading: false })
 const picPosition = ref<CropBoxData[]>([])
 // 截图插件配置
 const cropperOption = ref<Cropper.Options>({
@@ -70,19 +66,11 @@ const cropperOption = ref<Cropper.Options>({
     setTimeout(() => cropper.value && cropper.value.disable(), 0)
   }
 })
-
-const getImagePath = computed(() => {
-  return new URL(`../assets/${pageIndex.value}.jpg`, import.meta.url).href
-})
 const getCropBoxData = () => {
   cropBoxData.value = JSON.stringify(cropper.value?.getCropBoxData())
 }
 const zoom = (percent) => {
   cropper?.value?.zoom(percent)
-}
-const init = () => {
-  const ele = uploadImg.value as HTMLImageElement
-  cropper.value = new Cropper(ele, cropperOption.value)
 }
 const defaultPosition = ref({
   left: 0,
@@ -184,66 +172,6 @@ const getData = () => {
   const data = cropper.value && cropper.value.getData(true)
   realPicData.value = JSON.stringify(data)
 }
-const previous = async() => {
-  if (pageIndex.value > 1) {
-    cropper.value && cropper.value.enable()
-    pageIndex.value -= 1
-    cropper.value?.replace(getImagePath.value, true)
-    initDeFaultCropBoxData()
-    cropper.value && cropper?.value.setCropBoxData(picPosition.value[radioValue.value])
-    radioValue.value = 0
-    await nextTick()
-    setPageMode(pageMode.value)
-    cropper.value && cropper.value.disable()
-  }
-}
-const next = async () => {
-  if (pageIndex.value > 2) return
-  cropper.value && cropper.value.enable()
-  if (pageIndex.value >= 0) {
-    pageIndex.value += 1
-    cropper.value?.replace(getImagePath.value, true)
-    initDeFaultCropBoxData()
-    cropper.value && cropper?.value.setCropBoxData(picPosition.value[radioValue.value])
-  }
-  await nextTick()
-  setPageMode(pageMode.value)
-  cropper.value && cropper.value.disable()
-}
-const calculateImgSize = () => {
-  const cropperCanvas = document?.querySelector('.cropper-canvas') as HTMLElement
-  const cropperCanvasImg = cropperCanvas?.querySelector('img') as HTMLElement
-  const oriImg = document?.querySelector('#uploadImg') as HTMLImageElement
-  const { width, height } = cropperCanvasImg?.getBoundingClientRect() || { width: 0, height: 0 }
-  const wRatio = width / oriImg.naturalWidth
-  const hRatio = height / oriImg.naturalHeight
-  return { wRatio, hRatio }
-}
-const initDeFaultCropBoxData = () => {
-  const { wRatio, hRatio } = calculateImgSize()
-  const defaultCropBoxData = pageData.value.find((item) => item.page === pageIndex.value)?.data
-  if (defaultCropBoxData) {
-    picPosition.value = defaultCropBoxData.map((item) => ({ left: item.left * wRatio, top: item.top * hRatio, width: item.width * wRatio, height: item.height * hRatio, is_hidden: false }))
-    picPosition.value[radioValue.value].is_hidden = true
-    cropper.value?.setData(picPosition.value[0])
-  }
-}
-const initImg = async () => {
-  await nextTick()
-  const cropperContainer = document?.querySelector('.cropper-container') as HTMLElement
-  const cropperCanvas = document?.querySelector('.cropper-canvas') as HTMLElement
-  const cropperCanvasImg = cropperCanvas?.querySelector('img') as HTMLImageElement
-  const { width, height } = cropperCanvasImg?.getBoundingClientRect() || { width: 0, height: 0 }
-  if (cropperContainer) {
-    cropperContainer.style.width = `${width}px`
-    cropperContainer.style.height = `${height}px`
-  }
-  if (cropperCanvas) {
-    cropperCanvas.style.transform = `none`
-  }
-
-  cropper.value?.moveTo(0, 0)
-}
 const setPageMode = async (mode) => {
   pageMode.value = mode
   const { naturalWidth, naturalHeight } = document.querySelector('#uploadImg') as HTMLImageElement
@@ -265,16 +193,18 @@ const setPageMode = async (mode) => {
 const resizeImg = async () => {
   cropper.value?.destroy()
   await nextTick()
-  init()
+  initCropper(uploadImg.value)
   initImg()
   cropper.value?.crop()
 }
+const { cropper, getImagePath, initDeFaultCropBoxData, initImg, initCropper, changePage } = useCropper(pageData, pageIndex, radioValue, picPosition, cropperOption)
+
 watch(
   () => isLock.value,
   () => initImg()
 )
 onMounted(() => {
-  init()
+  initCropper(uploadImg.value)
   const pageObserver = new ResizeObserver(async () => {
     resizeImg()
   })
@@ -319,34 +249,17 @@ onMounted(() => {
           </div>
         </a-col>
         <a-col :lg="6" :sm="24" class="actions" style="height: 800px; overflow-y: scroll">
-          <a-button :disabled="isLock" @click.prevent="zoom(0.2)">Zoom In</a-button>
-          <a-button :disabled="isLock" @click.prevent="zoom(-0.2)">Zoom Out</a-button>
-          <a-button :disabled="isLock" @click.prevent="getData">Get Data</a-button>
-          <a-button :disabled="isLock" type="primary" @click.prevent="getCropBoxData">Get CropBox Data</a-button>
-          <div>
-            <a-button :disabled="!isLock" style="margin-right: 16px" @click.prevent="previous">Previous Page</a-button>
-            <a-button :disabled="!isLock" role="button" @click.prevent="next">Next Page</a-button>
-          </div>
-          <div>
-            <a-button :type="pageMode === 1 ? 'primary' : null" :disabled="!isLock" @click="setPageMode(1)">Responsive Page</a-button>
-            <a-button :type="pageMode === 2 ? 'primary' : null" :disabled="!isLock" @click="setPageMode(2)">Fit Page</a-button>
-            <a-button :type="pageMode === 3 ? 'primary' : null" :disabled="!isLock" @click="setPageMode(3)">Original Page</a-button>
-          </div>
-          <div>
-            cropBoxData:
-            <a-textarea style="margin-bottom: 16px" v-model:value="cropBoxData"></a-textarea>
-            RealPicData:
-            <a-textarea v-model:value="realPicData"></a-textarea>
-          </div>
-          <div v-for="(item, index) in picPosition" :key="index" style="margin-bottom: 16px">
-            CropBox:
-            <div>left: {{ item.left }}</div>
-            <div>top: {{ item.top }}</div>
-            <div>width: {{ item.width }}</div>
-            <div>height: {{ item.height }}</div>
-            <div>is_hidden: {{ item.is_hidden ? '隱藏' : '显示' }}</div>
-            <hr />
-          </div>
+          <RightPanel
+            :isLock="isLock"
+            :picPosition="picPosition"
+            :pageMode="pageMode"
+            :cropBoxData="cropBoxData"
+            :realPicData="realPicData"
+            @zoom="zoom"
+            @getData="getData"
+            @changePage="changePage"
+            @setPageMode="setPageMode"
+            @getCropBoxData="getCropBoxData" />
         </a-col>
       </a-row>
     </a-col>
@@ -406,52 +319,10 @@ onMounted(() => {
 .fit-page {
   height: 796px !important;
 }
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0 5px 0;
-}
-
-.header h2 {
-  margin: 0;
-}
-
-.header a {
-  text-decoration: none;
-  color: black;
-}
-
-.content {
-  display: flex;
-  justify-content: space-between;
-}
-
-.cropper-area {
-  width: 614px;
-}
-
-.actions {
-  margin-top: 1rem;
-}
-
-.actions button {
-  display: inline-block;
-  padding: 5px 15px;
-  text-decoration: none;
-  margin-right: 1rem;
-  margin-bottom: 1rem;
-}
-
-textarea {
-  width: 100%;
-  height: 100px;
-}
 
 .data-detail {
   display: flex;
 }
-
 .static-box {
   position: absolute;
   border-style: double;
@@ -467,7 +338,6 @@ textarea {
   z-index: 1;
   opacity: 0.7;
 }
-
 :deep(.cropper-face) {
   background-color: rgba(255, 255, 255, 0.2);
 }
