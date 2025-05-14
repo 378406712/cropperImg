@@ -89,9 +89,8 @@ const addCrop = () => {
   } else {
     const lastData = picPosition.value[radioValue.value]
     setStaticBoxShow()
-    console.log()
     cropper.value?.setCropBoxData({ ...defaultPosition.value, top: lastData.top + lastData.height })
-    picPosition.value[picPosition.value.length] = { ...cropper.value?.getCropBoxData(),is_hidden:true, top: lastData.top + lastData.height }
+    picPosition.value[picPosition.value.length] = { ...cropper.value?.getCropBoxData(), is_hidden: true, top: lastData.top + lastData.height }
   }
   radioValue.value = picPosition.value.length - 1
 }
@@ -153,8 +152,9 @@ const unlock = async () => {
     cropper.value.clear()
   }
 }
-const changeRadio = () => {
+const changeRadio = (e) => {
   if (!cropper.value) return
+  radioValue.value = e.target.value
   setStaticBoxShow()
   picPosition.value[radioValue.value].is_hidden = true
   const cropBoxData = picPosition.value[radioValue.value]
@@ -209,12 +209,14 @@ onMounted(() => {
 </script>
 
 <template>
+  radioValue: {{ radioValue }}
   <div class="actions" style="text-align: center; margin-bottom: 32px">
     <a-button type="primary" style="margin-right: 16px" @click.prevent="toBlock">Block</a-button>
     <a-button type="primary" @click.prevent="unlock">Edit</a-button>
   </div>
   <a-row type="flex">
     <a-col :lg="4" :sm="24" class="actions left-area">
+      {{ radioValue }}
       <LeftPanel :isLock="isLock" :picPosition="picPosition" :radioValue="radioValue" @changeRadio="changeRadio" @addCrop="addCrop" @deleteCrop="deleteCrop" @showDetail="showDetail" />
     </a-col>
     <a-col :lg="20" :sm="24">

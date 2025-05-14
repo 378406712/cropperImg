@@ -10,7 +10,7 @@ const radioStyle = reactive({ display: 'flex', height: '30px', lineHeight: '30px
 </script>
 
 <template>
-  <a-radio-group v-model:value="props.radioValue" @change="emits('changeRadio')" :disabled="props.isLock">
+  <a-radio-group v-model:value="props.radioValue" @change="emits('changeRadio', $event)" :disabled="props.isLock">
     <div v-for="(item, index) in props.picPosition" :key="index" style="margin-bottom: 16px">
       <a-radio :style="radioStyle" :value="index">
         切图{{ index + 1 }} y: {{ item.left }}
