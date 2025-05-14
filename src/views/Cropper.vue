@@ -11,6 +11,7 @@ interface CropBoxData extends Cropper.CropBoxData {
   is_hidden: boolean
 }
 const uploadImg = ref<HTMLImageElement>()
+const defaultContainerHeight = 796
 const isLock = ref(true)
 const pageMode = ref<1 | 2 | 3>(1) // 1: 默认按当前容器 2: 适应容器高度缩放 3: 原图缩放
 const pageData = ref([
@@ -76,7 +77,7 @@ const zoom = (percent) => {
 const defaultPosition = ref({
   left: 0,
   top: 0,
-  width: 1265,
+  width: 999999,
   height: 20,
   is_hidden: true
 })
@@ -88,14 +89,9 @@ const addCrop = () => {
   } else {
     const lastData = picPosition.value[radioValue.value]
     setStaticBoxShow()
-    cropper.value?.setCropBoxData({
-      ...defaultPosition.value,
-      top: lastData.top + lastData.height
-    })
-    picPosition.value[picPosition.value.length] = {
-      ...defaultPosition.value,
-      top: lastData.top + lastData.height
-    }
+    console.log()
+    cropper.value?.setCropBoxData({ ...defaultPosition.value, top: lastData.top + lastData.height })
+    picPosition.value[picPosition.value.length] = { ...cropper.value?.getCropBoxData(),is_hidden:true, top: lastData.top + lastData.height }
   }
   radioValue.value = picPosition.value.length - 1
 }
@@ -183,7 +179,7 @@ const setPageMode = async (mode) => {
     dom.style.height = `auto`
   } else if (mode === 2) {
     dom.style.width = `auto`
-    dom.style.height = `${796}px`
+    dom.style.height = `${defaultContainerHeight}px`
   } else if (mode === 3) {
     dom.style.width = `${naturalWidth}px`
     dom.style.height = `${naturalHeight}px`
