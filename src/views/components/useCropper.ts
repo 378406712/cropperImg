@@ -1,13 +1,12 @@
 import { ref, computed, nextTick } from 'vue'
 import Cropper from 'cropperjs'
 
-export function useCropper(pageData, pageIndex, radioValue, picPosition, cropperOption) {
+export function useCropper(pageMode, pageData, pageIndex, radioValue, picPosition, cropperOption) {
   const cropper = ref<Cropper | null>(null)
 
   const getImagePath = computed(() => {
     return new URL(`../../assets/${pageIndex.value}.jpg`, import.meta.url).href
   })
-
   const calculateImgSize = () => {
     const cropperCanvas = document?.querySelector('.cropper-canvas') as HTMLElement
     const cropperCanvasImg = cropperCanvas?.querySelector('img') as HTMLElement
@@ -18,28 +17,27 @@ export function useCropper(pageData, pageIndex, radioValue, picPosition, cropper
     return { wRatio, hRatio }
   }
 
-  const initDeFaultCropBoxData = () => {
+  const initDeFaultCropBoxData = (percent = 0) => {
     const { wRatio, hRatio } = calculateImgSize()
     const defaultCropBoxData = pageData.value.find((item) => item.page === pageIndex.value)?.data
     if (defaultCropBoxData) {
       picPosition.value = defaultCropBoxData.map((item) => ({
-        left: item.left * wRatio,
-        top: item.top * hRatio,
-        width: item.width * wRatio,
-        height: item.height * hRatio,
+        left: item.left * (wRatio + percent >= wRatio ? wRatio + percent : wRatio),
+        top: item.top * (hRatio + percent >= hRatio ? hRatio + percent : hRatio),
+        width: item.width * (wRatio + percent >= wRatio ? wRatio + percent : wRatio),
+        height: item.height * (hRatio + percent >= hRatio ? hRatio + percent : hRatio),
         is_hidden: false
       }))
       picPosition.value[radioValue.value].is_hidden = true
-      cropper.value?.setData(picPosition.value[0])
+      cropper.value?.setCropBoxData(picPosition.value[0])
     }
   }
 
   const initImg = async () => {
-    await nextTick()
+    const pageContainer = document?.querySelector('.page-mode') as HTMLElement
     const cropperContainer = document?.querySelector('.cropper-container') as HTMLElement
     const cropperCanvas = document?.querySelector('.cropper-canvas') as HTMLElement
-    const cropperCanvasImg = cropperCanvas?.querySelector('img') as HTMLElement
-    const { width, height } = cropperCanvasImg?.getBoundingClientRect() || { width: 0, height: 0 }
+    const { width, height } = pageContainer?.getBoundingClientRect() || { width: 0, height: 0 }
     if (cropperContainer) {
       cropperContainer.style.width = `${width}px`
       cropperContainer.style.height = `${height}px`

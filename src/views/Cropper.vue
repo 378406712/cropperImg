@@ -18,7 +18,7 @@ const pageData = ref([
   {
     page: 1,
     data: [
-      { left: 0, top: 0, width: 100, height: 100 },
+      { left: 300, top: 300, width: 100, height: 100 },
       { left: 100, top: 100, width: 100, height: 100 },
       { left: 200, top: 200, width: 100, height: 100 }
     ]
@@ -73,6 +73,7 @@ const getCropBoxData = () => {
 }
 const zoom = (percent) => {
   cropper?.value?.zoom(percent)
+  initDeFaultCropBoxData(percent)
 }
 const defaultPosition = ref({
   left: 0,
@@ -90,12 +91,12 @@ const addCrop = () => {
     const lastData = picPosition.value[radioValue.value]
     setStaticBoxShow()
     cropper.value?.setCropBoxData({ ...defaultPosition.value, top: lastData.top + lastData.height })
-    picPosition.value[picPosition.value.length] = { 
-      left: cropper.value?.getCropBoxData()?.left || 0, 
-      top: lastData.top + lastData.height, 
-      width: cropper.value?.getCropBoxData()?.width || 0, 
-      height: cropper.value?.getCropBoxData()?.height || 0, 
-      is_hidden: true 
+    picPosition.value[picPosition.value.length] = {
+      left: cropper.value?.getCropBoxData()?.left || 0,
+      top: lastData.top + lastData.height,
+      width: cropper.value?.getCropBoxData()?.width || 0,
+      height: cropper.value?.getCropBoxData()?.height || 0,
+      is_hidden: true
     }
   }
   radioValue.value = picPosition.value.length - 1
@@ -178,37 +179,41 @@ const getData = () => {
 const setPageMode = async (mode) => {
   pageMode.value = mode
   const { naturalWidth, naturalHeight } = document.querySelector('#uploadImg') as HTMLImageElement
-  const dom = document.querySelector('.page-mode') as HTMLElement
+  const pageModeContainer = document.querySelector('.page-mode') as HTMLElement
   await nextTick()
   if (mode === 1) {
-    dom.style.width = `auto`
-    dom.style.height = `auto`
+    pageModeContainer.style.width = `auto`
+    pageModeContainer.style.height = `auto`
   } else if (mode === 2) {
-    dom.style.width = `auto`
-    dom.style.height = `${defaultContainerHeight}px`
+    // Fit mode暂定 固定width
+    pageModeContainer.style.width = `500px`
+    pageModeContainer.style.height = `100%`
   } else if (mode === 3) {
-    dom.style.width = `${naturalWidth}px`
-    dom.style.height = `${naturalHeight}px`
+    pageModeContainer.style.width = `${naturalWidth}px`
+    pageModeContainer.style.height = `${naturalHeight}px`
   }
   resizeImg()
 }
 const resizeImg = async () => {
-  if(isLock.value) cropper.value?.destroy() // 锁定状态下
-  await nextTick()
+  if (isLock.value) cropper.value?.destroy() // 锁定状态下
   initCropper(uploadImg.value)
   initImg()
   cropper.value?.crop()
 }
-const { cropper, getImagePath, initDeFaultCropBoxData, initImg, initCropper, changePage } = useCropper(pageData, pageIndex, radioValue, picPosition, cropperOption)
+const { cropper, getImagePath, initDeFaultCropBoxData, initImg, initCropper, changePage } = useCropper(pageMode, pageData, pageIndex, radioValue, picPosition, cropperOption)
 
 watch(
   () => isLock.value,
   () => initImg()
 )
 onMounted(() => {
-  initCropper(uploadImg.value)
   const pageObserver = new ResizeObserver(async () => {
+    if (pageMode.value === 2) {
+    }
     resizeImg()
+    if (!isLock.value) {
+      initDeFaultCropBoxData()
+    }
   })
   pageObserver.observe(document.querySelector('.img-container') as HTMLElement)
 })
