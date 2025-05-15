@@ -90,7 +90,13 @@ const addCrop = () => {
     const lastData = picPosition.value[radioValue.value]
     setStaticBoxShow()
     cropper.value?.setCropBoxData({ ...defaultPosition.value, top: lastData.top + lastData.height })
-    picPosition.value[picPosition.value.length] = { ...cropper.value?.getCropBoxData(), is_hidden: true, top: lastData.top + lastData.height }
+    picPosition.value[picPosition.value.length] = { 
+      left: cropper.value?.getCropBoxData()?.left || 0, 
+      top: lastData.top + lastData.height, 
+      width: cropper.value?.getCropBoxData()?.width || 0, 
+      height: cropper.value?.getCropBoxData()?.height || 0, 
+      is_hidden: true 
+    }
   }
   radioValue.value = picPosition.value.length - 1
 }
@@ -187,7 +193,7 @@ const setPageMode = async (mode) => {
   resizeImg()
 }
 const resizeImg = async () => {
-  cropper.value?.destroy()
+  if(isLock.value) cropper.value?.destroy() // 锁定状态下
   await nextTick()
   initCropper(uploadImg.value)
   initImg()
