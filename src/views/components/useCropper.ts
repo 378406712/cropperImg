@@ -1,9 +1,11 @@
 import { ref, computed, nextTick } from 'vue'
 import Cropper from 'cropperjs'
-
-export function useCropper(pageMode, pageData, pageIndex, radioValue, picPosition, cropperOption) {
+interface CropBoxData extends Cropper.CropBoxData {
+  is_hidden: boolean
+}
+export function useCropper(pageMode, pageData, pageIndex, radioValue, cropperOption) {
   const cropper = ref<Cropper | null>(null)
-
+  const picPosition = ref<CropBoxData[]>([])
   const getImagePath = computed(() => {
     return new URL(`../../assets/${pageIndex.value}.jpg`, import.meta.url).href
   })
@@ -29,7 +31,7 @@ export function useCropper(pageMode, pageData, pageIndex, radioValue, picPositio
         is_hidden: false
       }))
       picPosition.value[radioValue.value].is_hidden = true
-      cropper.value?.setCropBoxData(picPosition.value[0])
+      cropper.value?.setCropBoxData(picPosition.value[radioValue.value])
     }
   }
 
@@ -74,6 +76,7 @@ export function useCropper(pageMode, pageData, pageIndex, radioValue, picPositio
     initDeFaultCropBoxData,
     initImg,
     initCropper,
-    changePage
+    changePage,
+    picPosition
   }
 }

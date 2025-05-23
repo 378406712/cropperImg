@@ -10,6 +10,15 @@ import RightPanel from './components/RightPanel.vue'
 interface CropBoxData extends Cropper.CropBoxData {
   is_hidden: boolean
 }
+interface Data {
+  x: number
+  y: number
+  width: number
+  height: number
+  rotate: number
+  scaleX: number
+  scaleY: number
+}
 const uploadImg = ref<HTMLImageElement>()
 const defaultContainerHeight = 796
 const isLock = ref(true)
@@ -47,7 +56,7 @@ const realPicData = ref()
 const pageIndex = ref(1)
 const detailInfo = ref({ visible: false, data: { left: 0, top: 0, width: 0, height: 0, rotate: 0 }, loading: false })
 // 当前图片位置
-const picPosition = ref<CropBoxData[]>([])
+// const picPosition = ref<CropBoxData[]>([])
 // 截图插件配置
 const cropperOption = ref<Cropper.Options>({
   viewMode: 1, // 只能在裁剪的图片范围内移动
@@ -58,16 +67,16 @@ const cropperOption = ref<Cropper.Options>({
   zoomOnWheel: false, // 是否允许缩放图片
   guides: false, // 是否显示剪裁框虚线
   autoCrop: false,
-  cropend() {
+  async cropend() {
+    await nextTick()
     const cropData = { ...cropper.value?.getCropBoxData(), is_hidden: true }
+    const { x: left, y: top, width, height } = cropper.value?.getData() as Data
     picPosition.value[radioValue.value] = { left: cropData.left || 0, top: cropData.top || 0, width: cropData.width || 0, height: cropData.height || 0, is_hidden: true }
-
-    // pageData.value.map((item) => {
-    //   if (item.page === pageIndex.value) {
-    //     item.data[radioValue.value] = { ...picPosition.value[radioValue.value] }
-    //   }
-    // })
-    // console.log(picPosition.value[radioValue.value], pageData.value)
+    pageData.value.map((item) => {
+      if (item.page === pageIndex.value) {
+        item.data[radioValue.value] = { left, top, width, height }
+      }
+    })
   },
   ready() {
     initDeFaultCropBoxData()
@@ -207,7 +216,7 @@ const resizeImg = async () => {
   initImg()
   cropper.value?.crop()
 }
-const { cropper, getImagePath, initDeFaultCropBoxData, initImg, initCropper, changePage } = useCropper(pageMode, pageData, pageIndex, radioValue, picPosition, cropperOption)
+const { cropper, picPosition, getImagePath, initDeFaultCropBoxData, initImg, initCropper, changePage } = useCropper(pageMode, pageData, pageIndex, radioValue, cropperOption)
 
 watch(
   () => isLock.value,
@@ -215,7 +224,7 @@ watch(
 )
 onMounted(() => {
   initCropper(uploadImg.value)
-  
+
   const pageObserver = new ResizeObserver(async () => {
     resizeImg()
     if (!isLock.value) {
