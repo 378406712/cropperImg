@@ -24,8 +24,8 @@ const emits = defineEmits(['zoom', 'getData', 'changePage', 'getCropBoxData', 's
 </script>
 
 <template>
-  <a-button :disabled="props.isLock" @click.prevent="emits('zoom', 0.2)">Zoom In</a-button>
-  <a-button :disabled="props.isLock" @click.prevent="emits('zoom', -0.2)">Zoom Out</a-button>
+  <!-- <a-button :disabled="props.isLock" @click.prevent="emits('zoom', 0.2)">Zoom In</a-button>
+  <a-button :disabled="props.isLock" @click.prevent="emits('zoom', -0.2)">Zoom Out</a-button> -->
   <a-button :disabled="props.isLock" @click.prevent="emits('getData')">Get Data</a-button>
   <a-button :disabled="props.isLock" type="primary" @click.prevent="emits('getCropBoxData')">Get CropBox Data</a-button>
   <div>
