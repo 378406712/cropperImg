@@ -61,6 +61,13 @@ const cropperOption = ref<Cropper.Options>({
   cropend() {
     const cropData = { ...cropper.value?.getCropBoxData(), is_hidden: true }
     picPosition.value[radioValue.value] = { left: cropData.left || 0, top: cropData.top || 0, width: cropData.width || 0, height: cropData.height || 0, is_hidden: true }
+
+    // pageData.value.map((item) => {
+    //   if (item.page === pageIndex.value) {
+    //     item.data[radioValue.value] = { ...picPosition.value[radioValue.value] }
+    //   }
+    // })
+    // console.log(picPosition.value[radioValue.value], pageData.value)
   },
   ready() {
     initDeFaultCropBoxData()
@@ -195,8 +202,8 @@ const setPageMode = async (mode) => {
   resizeImg()
 }
 const resizeImg = async () => {
-  if (isLock.value) cropper.value?.destroy() // 锁定状态下
-  initCropper(uploadImg.value)
+  if (isLock.value) cropper.value?.clear() // 锁定状态下
+  // initCropper(uploadImg.value)
   initImg()
   cropper.value?.crop()
 }
@@ -207,9 +214,9 @@ watch(
   () => initImg()
 )
 onMounted(() => {
+  initCropper(uploadImg.value)
+  
   const pageObserver = new ResizeObserver(async () => {
-    if (pageMode.value === 2) {
-    }
     resizeImg()
     if (!isLock.value) {
       initDeFaultCropBoxData()
